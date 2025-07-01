@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Your app description">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Your App">
+
+  <title>Your App</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <script src="main.dart.js" type="application/javascript"></script>
+  <script>
+    // Handle the OAuth callback
+    window.addEventListener('load', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('code') || urlParams.has('error')) {
+        // This is an OAuth callback
+        history.replaceState({}, document.title, window.location.pathname);
+      }
+    });
+  </script>
+</body>
+</html>
