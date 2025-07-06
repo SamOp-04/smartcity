@@ -2,6 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart' as geo;
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../supabase_client.dart';
 
 class IssueReportForm extends StatefulWidget {
@@ -17,6 +21,7 @@ class _IssueReportFormState extends State<IssueReportForm> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _addressController = TextEditingController();
   String _selectedCategory = 'General';
   bool _isLoading = false;
   final List<XFile> _imageFiles = [];
@@ -42,7 +47,128 @@ class _IssueReportFormState extends State<IssueReportForm> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _addressController.dispose();
     super.dispose();
+  }
+
+  Future<Position?> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enable location services.')),
+      );
+      return null;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location permission denied.')),
+        );
+        return null;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location permission permanently denied.')),
+      );
+      return null;
+    }
+
+    return await Geolocator.getCurrentPosition();
+  }
+
+  Future<void> _pinAndFetchAddress() async {
+    final position = await _getCurrentLocation();
+    if (position == null) return;
+
+    LatLng selectedPosition = LatLng(position.latitude, position.longitude);
+
+    await showDialog(
+      context: context,
+      builder: (outerContext) {
+        return AlertDialog(
+          title: const Text("Pin Your Location"),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: StatefulBuilder(
+              builder: (context, setStateDialog) {
+                return FlutterMap(
+                  options: MapOptions(
+                    center: selectedPosition,
+                    zoom: 16,
+                    onTap: (tapPosition, point) {
+                      setStateDialog(() {
+                        selectedPosition = point;
+                      });
+                    },
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      subdomains: const ['a', 'b', 'c'],
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: selectedPosition,
+                          width: 40,
+                          height: 40,
+                          child: const Icon(
+                            Icons.location_on,
+                            size: 40,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Use this location"),
+              onPressed: () async {
+                final placemarks =
+                await geo.placemarkFromCoordinates(
+                    selectedPosition.latitude, selectedPosition.longitude);
+
+                if (placemarks.isNotEmpty) {
+                  final place = placemarks.first;
+                  final address = [
+                    place.name,
+                    place.street,
+                    place.locality,
+                    place.administrativeArea,
+                    place.postalCode,
+                  ].where((e) => e != null && e.isNotEmpty).join(', ');
+
+                  setState(() {
+                    _addressController.text = address;
+                  });
+                }
+
+                Navigator.pop(outerContext); // ✅ fixes the close issue
+              },
+            ),
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () => Navigator.pop(outerContext),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _pickImage() async {
@@ -50,7 +176,7 @@ class _IssueReportFormState extends State<IssueReportForm> {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 80, // Reduce image quality to save bandwidth
+        imageQuality: 80,
       );
 
       if (pickedFile != null && mounted) {
@@ -70,27 +196,23 @@ class _IssueReportFormState extends State<IssueReportForm> {
   Future<String?> _uploadImage(XFile imageFile) async {
     try {
       final userId = SupabaseClientManager.client.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('User not authenticated');
-      }
+      if (userId == null) throw Exception('User not authenticated');
 
       final fileExt = imageFile.path.split('.').last;
       final fileName = '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
       final bytes = await imageFile.readAsBytes();
 
-      // Upload the image
       await SupabaseClientManager.client.storage
           .from('issue-images')
           .uploadBinary(
-            fileName,
-            bytes,
-            fileOptions: FileOptions(
-              contentType: 'image/$fileExt',
-              upsert: false,
-            ),
-          );
+        fileName,
+        bytes,
+        fileOptions: FileOptions(
+          contentType: 'image/$fileExt',
+          upsert: false,
+        ),
+      );
 
-      // Get the public URL
       final imageUrl = SupabaseClientManager.client.storage
           .from('issue-images')
           .getPublicUrl(fileName);
@@ -109,48 +231,42 @@ class _IssueReportFormState extends State<IssueReportForm> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
+
+    final position = await _getCurrentLocation();
+    if (position == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
     try {
-      // Upload new images
       final newImageUrls = <String>[];
       for (final imageFile in _imageFiles) {
         final url = await _uploadImage(imageFile);
-        if (url != null) {
-          newImageUrls.add(url);
-        }
+        if (url != null) newImageUrls.add(url);
       }
 
-      // Combine with existing images
       final allImageUrls = [..._uploadedImageUrls, ...newImageUrls];
 
-      // Get current user
       final userId = SupabaseClientManager.client.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('User not authenticated');
-      }
+      if (userId == null) throw Exception('User not authenticated');
 
-      // Insert issue into database
-      final response = await SupabaseClientManager.client
-          .from('issues')
-          .insert({
-            'user_id': userId,
-            'title': _titleController.text.trim(),
-            'description': _descriptionController.text.trim(),
-            'category': _selectedCategory,
-            'status': 'Pending',
-            'image_urls': allImageUrls,
-          })
-          .select();
+      await SupabaseClientManager.client.from('issues').insert({
+        'user_id': userId,
+        'title': _titleController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'category': _selectedCategory,
+        'status': 'Pending',
+        'image_urls': allImageUrls,
+        'address': _addressController.text.trim(),
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+      }).select();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Issue reported successfully')),
         );
-
-        // Clear form
         _formKey.currentState!.reset();
         setState(() {
           _imageFiles.clear();
@@ -172,9 +288,7 @@ class _IssueReportFormState extends State<IssueReportForm> {
       }
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -257,6 +371,41 @@ class _IssueReportFormState extends State<IssueReportForm> {
                 return null;
               },
             ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _addressController,
+                    decoration: const InputDecoration(
+                      labelText: 'Address / Landmark',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.location_on),
+                    ),
+                    maxLines: 2,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter an address or landmark';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 60,
+                  child: ElevatedButton.icon(
+                    onPressed: _pinAndFetchAddress,
+                    icon: const Icon(Icons.pin_drop),
+                    label: const Text("Pin"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             const Text(
               'Attachments',
@@ -264,10 +413,7 @@ class _IssueReportFormState extends State<IssueReportForm> {
             ),
             const SizedBox(height: 8),
             if (_uploadedImageUrls.isNotEmpty) ...[
-              const Text(
-                'Previously uploaded images:',
-                style: TextStyle(fontSize: 14),
-              ),
+              const Text('Previously uploaded images:'),
               const SizedBox(height: 8),
               SizedBox(
                 height: 100,
@@ -301,10 +447,7 @@ class _IssueReportFormState extends State<IssueReportForm> {
               const SizedBox(height: 16),
             ],
             if (_imageFiles.isNotEmpty) ...[
-              const Text(
-                'New images to upload:',
-                style: TextStyle(fontSize: 14),
-              ),
+              const Text('New images to upload:'),
               const SizedBox(height: 8),
               SizedBox(
                 height: 100,
@@ -367,13 +510,13 @@ class _IssueReportFormState extends State<IssueReportForm> {
               ),
               child: _isLoading
                   ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(Colors.white),
-                      ),
-                    )
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation(Colors.white),
+                ),
+              )
                   : const Text('Submit Issue'),
             ),
           ],
