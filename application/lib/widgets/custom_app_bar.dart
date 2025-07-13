@@ -2,21 +2,20 @@ import 'package:flutter/material.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
+  final bool automaticallyImplyLeading;
 
-  const CustomAppBar({super.key, required this.title, required bool automaticallyImplyLeading});
+  const CustomAppBar({
+    super.key,
+    required this.title,
+    this.automaticallyImplyLeading = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
       title: Text(title),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {
-            Scaffold.of(context).openDrawer();
-          },
-        ),
-      ],
+      automaticallyImplyLeading: automaticallyImplyLeading,
+      // Removed extra menu icon from right side
     );
   }
 

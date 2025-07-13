@@ -20,21 +20,35 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<List<Map<String, dynamic>>> _fetchUserIssues() async {
     final userId = _client.auth.currentUser?.id;
-    if (userId == null) return [];
+    print('🔍 Current User ID: $userId');
 
-    final response = await _client
-        .from('issues')
-        .select()
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
+    if (userId == null) {
+      debugPrint("⚠️ No user logged in.");
+      return [];
+    }
 
-    return List<Map<String, dynamic>>.from(response);
+    try {
+      final response = await _client
+          .from('issues')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+
+      print('✅ Issues fetched: ${response.length}');
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint("❌ Error fetching issues: $e");
+      return [];
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Submitted Issues')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('My Submitted Issues'),
+      ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _userIssues,
         builder: (context, snapshot) {
@@ -46,11 +60,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          final issues = snapshot.data ?? [];
+
+          if (issues.isEmpty) {
             return const Center(child: Text('No issues submitted yet.'));
           }
-
-          final issues = snapshot.data!;
 
           return ListView.builder(
             itemCount: issues.length,
@@ -61,6 +75,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               final address = issue['address'] ?? 'No Address';
               final createdAt = DateTime.tryParse(issue['created_at'] ?? '');
               final imageUrls = List<String>.from(issue['image_urls'] ?? []);
+              final description = issue['description'] ?? '';
+              final category = issue['category'] ?? 'General';
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -73,22 +89,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       width: 60,
                       height: 60,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+                      errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.image_not_supported),
                     ),
                   )
                       : const Icon(Icons.image_not_supported, size: 40),
-                  title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(title,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (description.isNotEmpty)
+                        Text('📝 $description',
+                            style: const TextStyle(fontSize: 13)),
+                      Text('📂 Category: $category',
+                          style: const TextStyle(fontSize: 13)),
                       const SizedBox(height: 4),
-                      Text('📍 $address', style: const TextStyle(fontSize: 13)),
+                      Text('📍 $address',
+                          style: const TextStyle(fontSize: 13)),
                       if (createdAt != null)
                         Text(
                           '🕒 ${createdAt.toLocal().toString().split('.').first}',
                           style: const TextStyle(fontSize: 13),
                         ),
-                      Text('🟡 Status: $status', style: const TextStyle(fontSize: 13)),
+                      Text('🟡 Status: $status',
+                          style: const TextStyle(fontSize: 13)),
                     ],
                   ),
                 ),

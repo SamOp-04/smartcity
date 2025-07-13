@@ -39,7 +39,11 @@ class SupabaseClientManager {
         'full_name': user.userMetadata?['full_name'] ?? 'No Name',
       };
 
-      await client.from('profiles').upsert(userData);
+      await client.from('profiles').upsert(
+        userData,
+        onConflict: 'user_id', // ✅ Correct Dart syntax
+      );
+
       print('✅ Profile upserted for user ${user.id}');
     } catch (e) {
       print('❌ Error in _createOrUpdateUserProfile: $e');
@@ -48,11 +52,11 @@ class SupabaseClientManager {
   }
 
   static Future<AuthResponse> signUpWithEmail(
-    String email,
-    String password, {
-    String? username,
-    String? fullName,
-  }) async {
+      String email,
+      String password, {
+        String? username,
+        String? fullName,
+      }) async {
     try {
       final metadata = <String, dynamic>{
         if (username != null) 'username': username,
@@ -114,9 +118,9 @@ class SupabaseClientManager {
   }
 
   static Future<void> updateUserProfile(
-    String userId,
-    Map<String, dynamic> updates
-  ) async {
+      String userId,
+      Map<String, dynamic> updates,
+      ) async {
     try {
       await client.from('profiles').update(updates).eq('user_id', userId);
     } catch (e) {

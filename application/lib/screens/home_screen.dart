@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/issue_report_form.dart';
 import '../supabase_client.dart';
+import '../screens/history_screen.dart'; // ✅ Import the HistoryScreen here
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -56,7 +57,6 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final pickedFile = await _picker.pickImage(source: ImageSource.camera);
       if (pickedFile != null && mounted) {
-        // Upload the image to Supabase Storage
         final userId = SupabaseClientManager.client.auth.currentUser?.id;
         if (userId == null) throw Exception('User not authenticated');
 
@@ -66,12 +66,11 @@ class _HomeScreenState extends State<HomeScreen> {
         await SupabaseClientManager.client.storage
             .from('issue-images')
             .uploadBinary(
-              storagePath,
-              await pickedFile.readAsBytes(),
-              fileOptions: FileOptions(contentType: 'image/jpeg'),
-            );
+          storagePath,
+          await pickedFile.readAsBytes(),
+          fileOptions: FileOptions(contentType: 'image/jpeg'),
+        );
 
-        // Get the public URL of the uploaded image
         final imageUrl = SupabaseClientManager.client.storage
             .from('issue-images')
             .getPublicUrl(storagePath);
@@ -101,35 +100,32 @@ class _HomeScreenState extends State<HomeScreen> {
       key: _scaffoldKey,
       appBar: CustomAppBar(
         title: _currentIndex == 0 ? 'Report Issue' : 'Issue History',
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
       ),
       body: _currentIndex == 0
           ? IssueReportForm(initialImageUrls: _imageUrls)
-          : const Center(child: Text('History Content')), // Replace with your history widget
+          : const HistoryScreen(), // ✅ Fixed: Show HistoryScreen instead of placeholder
+
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton(
-              onPressed: _pickImage,
-              tooltip: 'Take Photo',
-              child: const Icon(Icons.camera_alt),
-            )
+        onPressed: _pickImage,
+        tooltip: 'Take Photo',
+        child: const Icon(Icons.camera_alt),
+      )
           : null,
+
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(
-                color: Colors.blue,
-              ),
+              decoration: const BoxDecoration(color: Colors.blue),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
                     'Issue Reporter',
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: Colors.white,
-                    ),
+                    style: TextStyle(fontSize: 24, color: Colors.white),
                   ),
                   const SizedBox(height: 8),
                   StreamBuilder<AuthState>(
@@ -138,10 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       final user = SupabaseClientManager.client.auth.currentUser;
                       return Text(
                         user?.email ?? 'Not logged in',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.white70,
-                        ),
+                        style: const TextStyle(fontSize: 16, color: Colors.white70),
                       );
                     },
                   ),

@@ -26,6 +26,8 @@ class _IssueReportFormState extends State<IssueReportForm> {
   bool _isLoading = false;
   final List<XFile> _imageFiles = [];
   final List<String> _uploadedImageUrls = [];
+  LatLng? _selectedLocation;
+
 
   final List<String> _categories = [
     'General',
@@ -52,10 +54,7 @@ class _IssueReportFormState extends State<IssueReportForm> {
   }
 
   Future<Position?> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enable location services.')),
@@ -63,7 +62,7 @@ class _IssueReportFormState extends State<IssueReportForm> {
       return null;
     }
 
-    permission = await Geolocator.checkPermission();
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
@@ -139,8 +138,7 @@ class _IssueReportFormState extends State<IssueReportForm> {
             TextButton(
               child: const Text("Use this location"),
               onPressed: () async {
-                final placemarks =
-                await geo.placemarkFromCoordinates(
+                final placemarks = await geo.placemarkFromCoordinates(
                     selectedPosition.latitude, selectedPosition.longitude);
 
                 if (placemarks.isNotEmpty) {
@@ -155,11 +153,13 @@ class _IssueReportFormState extends State<IssueReportForm> {
 
                   setState(() {
                     _addressController.text = address;
+                    _selectedLocation = selectedPosition; // ✅ Store selected location
                   });
                 }
 
-                Navigator.pop(outerContext); // ✅ fixes the close issue
+                Navigator.pop(outerContext);
               },
+
             ),
             TextButton(
               child: const Text("Cancel"),
@@ -213,11 +213,9 @@ class _IssueReportFormState extends State<IssueReportForm> {
         ),
       );
 
-      final imageUrl = SupabaseClientManager.client.storage
+      return SupabaseClientManager.client.storage
           .from('issue-images')
           .getPublicUrl(fileName);
-
-      return imageUrl;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -233,10 +231,14 @@ class _IssueReportFormState extends State<IssueReportForm> {
 
     setState(() => _isLoading = true);
 
-    final position = await _getCurrentLocation();
-    if (position == null) {
-      setState(() => _isLoading = false);
-      return;
+    LatLng? latLng = _selectedLocation;
+    if (latLng == null) {
+      final currentPos = await _getCurrentLocation();
+      if (currentPos == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+      latLng = LatLng(currentPos.latitude, currentPos.longitude);
     }
 
     try {
@@ -259,8 +261,9 @@ class _IssueReportFormState extends State<IssueReportForm> {
         'status': 'Pending',
         'image_urls': allImageUrls,
         'address': _addressController.text.trim(),
-        'latitude': position.latitude,
-        'longitude': position.longitude,
+        'latitude': latLng.latitude,
+        'longitude': latLng.longitude,
+
       }).select();
 
       if (mounted) {
@@ -299,227 +302,203 @@ class _IssueReportFormState extends State<IssueReportForm> {
     });
   }
 
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        border: OutlineInputBorder(),
+      ),
+      validator: validator,
+    );
+  }
+
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageGallery(List<String> urls) {
+    return SizedBox(
+      height: 100,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: urls.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                urls[index],
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+                errorBuilder: (context, _, __) => Container(
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.broken_image),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildLocalImageGallery() {
+    return SizedBox(
+      height: 100,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _imageFiles.length,
+        itemBuilder: (context, index) {
+          return Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    File(_imageFiles[index].path),
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: GestureDetector(
+                  onTap: () => _removeImage(index),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, size: 20, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextFormField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.title),
+    return Scaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildSectionTitle('Title', Icons.title),
+              const SizedBox(height: 8),
+              _buildTextField(
+                controller: _titleController,
+                label: 'Title',
+                icon: Icons.title,
+                validator: (value) =>
+                value == null || value.isEmpty ? 'Please enter a title' : null,
               ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter a title';
-                }
-                if (value.length > 100) {
-                  return 'Title must be less than 100 characters';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.description),
-                alignLabelWithHint: true,
+              const SizedBox(height: 16),
+              _buildSectionTitle('Description', Icons.description),
+              const SizedBox(height: 8),
+              _buildTextField(
+                controller: _descriptionController,
+                label: 'Description',
+                icon: Icons.description,
+                maxLines: 4,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please enter a description'
+                    : null,
               ),
-              maxLines: 5,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter a description';
-                }
-                if (value.length > 1000) {
-                  return 'Description must be less than 1000 characters';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _selectedCategory,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.category),
-              ),
-              items: _categories.map((category) {
-                return DropdownMenuItem<String>(
-                  value: category,
-                  child: Text(category),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedCategory = value!;
-                });
-              },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please select a category';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _addressController,
-                    decoration: const InputDecoration(
-                      labelText: 'Address / Landmark',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.location_on),
-                    ),
-                    maxLines: 2,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter an address or landmark';
-                      }
-                      return null;
-                    },
-                  ),
+              const SizedBox(height: 16),
+              _buildSectionTitle('Category', Icons.category),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.category),
                 ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  height: 60,
-                  child: ElevatedButton.icon(
+                items: _categories.map((category) {
+                  return DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCategory = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildSectionTitle('Address / Landmark', Icons.location_on),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _addressController,
+                      label: 'Address',
+                      icon: Icons.location_on,
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Please enter address'
+                          : null,
+                    ),
+                  ),
+                  IconButton(
                     onPressed: _pinAndFetchAddress,
                     icon: const Icon(Icons.pin_drop),
-                    label: const Text("Pin"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Attachments',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            if (_uploadedImageUrls.isNotEmpty) ...[
-              const Text('Previously uploaded images:'),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 100,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _uploadedImageUrls.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          _uploadedImageUrls[index],
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 100,
-                              height: 100,
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.broken_image),
-                            );
-                          },
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                ],
               ),
               const SizedBox(height: 16),
-            ],
-            if (_imageFiles.isNotEmpty) ...[
-              const Text('New images to upload:'),
+              _buildSectionTitle('Uploaded Images', Icons.cloud_done),
               const SizedBox(height: 8),
-              SizedBox(
-                height: 100,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _imageFiles.length,
-                  itemBuilder: (context, index) {
-                    return Stack(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              File(_imageFiles[index].path),
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: GestureDetector(
-                            onTap: () => _removeImage(index),
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.close,
-                                size: 20,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
+              if (_uploadedImageUrls.isNotEmpty)
+                _buildImageGallery(_uploadedImageUrls),
+              const SizedBox(height: 8),
+              _buildLocalImageGallery(),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(Icons.add_a_photo),
+                label: const Text('Pick Image'),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _submitForm,
+                child: _isLoading
+                    ? const CircularProgressIndicator()
+                    : const Text('Submit'),
+              ),
             ],
-            ElevatedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.add_photo_alternate),
-              label: const Text('Add Image'),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _submitForm,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                height: 24,
-                width: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation(Colors.white),
-                ),
-              )
-                  : const Text('Submit Issue'),
-            ),
-          ],
+          ),
         ),
       ),
     );
