@@ -6,9 +6,9 @@ plugins {
 }
 
 android {
-    namespace = "com.example.application"
+    namespace = "com.example.smartcity" // ✅ Correct namespace
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "29.0.13599879"         // ✅ Moved here once
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -20,10 +20,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.application"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "com.example.smartcity" // ✅ Matches namespace
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -37,7 +34,6 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
-         ndkVersion = "29.0.13599879" 
 }
 
 flutter {
