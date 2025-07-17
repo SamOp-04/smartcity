@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/issue_report_form.dart';
 import '../supabase_client.dart';
-import '../screens/history_screen.dart'; // ✅ Import the HistoryScreen here
+import '../screens/history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: _currentIndex == 0
           ? IssueReportForm(initialImageUrls: _imageUrls)
-          : const HistoryScreen(), // ✅ Fixed: Show HistoryScreen instead of placeholder
+          : const HistoryScreen(),
 
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton(
