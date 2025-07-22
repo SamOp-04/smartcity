@@ -14,7 +14,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   List<String> _imageUrls = [];
   final ImagePicker _picker = ImagePicker();
@@ -94,26 +93,136 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Define the target size in logical pixels (approx 5cm)
+  static const double _boxSize = 5 * 38.0; // 5 cm * 38 logical pixels/cm = 190.0
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       appBar: CustomAppBar(
-        title: _currentIndex == 0 ? 'Report Issue' : 'Issue History',
+        title: 'Issue Reporter',
         automaticallyImplyLeading: true,
       ),
-      body: _currentIndex == 0
-          ? IssueReportForm(initialImageUrls: _imageUrls)
-          : const HistoryScreen(),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Welcome message / Header section
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20.0),
+                child: Text(
+                  'Welcome to the SmartCity360!',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey[800],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 30.0),
+                child: Text(
+                  'Choose an option below to get started.',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
 
-      floatingActionButton: _currentIndex == 0
-          ? FloatingActionButton(
-        onPressed: _pickImage,
-        tooltip: 'Take Photo',
-        child: const Icon(Icons.camera_alt),
-      )
-          : null,
+              // The GridView containing your square boxes
+              // We'll use a FixedExtent to ensure the size.
+              GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16.0,
+                mainAxisSpacing: 16.0,
+                childAspectRatio: 1, // Keep children square
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                children: [
+                  _buildSquareOptionContainer(
+                    context: context,
+                    icon: Icons.error_outline,
+                    title: 'Report New Issue',
+                    color: Colors.red.shade600,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Scaffold(
+                            appBar: CustomAppBar(title: 'Report Issue'),
+                            body: IssueReportForm(initialImageUrls: _imageUrls),
+                            floatingActionButton: FloatingActionButton(
+                              onPressed: _pickImage,
+                              tooltip: 'Take Photo',
+                              child: const Icon(Icons.camera_alt),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildSquareOptionContainer(
+                    context: context,
+                    icon: Icons.history,
+                    title: 'View History',
+                    color: Colors.blue.shade600,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const Scaffold(
+                            appBar: CustomAppBar(title: 'Issue History'),
+                            body: HistoryScreen(),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
 
+              // Example of future content
+              Align(
+                alignment: Alignment.center,
+                child: Column(
+                  children: [
+                    const Icon(Icons.info_outline, size: 40, color: Colors.grey),
+                    const SizedBox(height: 10),
+                    Text(
+                      'More features coming soon!',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Colors.grey[700],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // Action for future content, e.g., "Learn More"
+                      },
+                      icon: const Icon(Icons.lightbulb_outline),
+                      label: const Text('Learn About Our App'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -142,29 +251,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
-              selected: _currentIndex == 0,
-              onTap: () {
-                setState(() {
-                  _currentIndex = 0;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: const Text('History'),
-              selected: _currentIndex == 1,
-              onTap: () {
-                setState(() {
-                  _currentIndex = 1;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            const Divider(),
-            ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
               onTap: () {
@@ -175,23 +261,55 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.report_problem),
-            label: 'Report',
+    );
+  }
+
+  Widget _buildSquareOptionContainer({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox( // Use SizedBox to enforce exact dimensions
+      width: _boxSize,
+      height: _boxSize,
+      child: Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(15),
+          child: Container(
+            padding: const EdgeInsets.all(8.0), // Slightly reduced padding to fit content
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 50, // Adjusted icon size to fit within smaller box
+                  color: color,
+                ),
+                const SizedBox(height: 10), // Reduced spacing
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16, // Reduced font size for smaller box
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
-          ),
-        ],
+        ),
       ),
     );
   }
