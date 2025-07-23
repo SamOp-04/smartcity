@@ -42,31 +42,149 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'in_progress':
+        return Colors.blue;
+      case 'resolved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'roads':
+        return Icons.directions_car_outlined;
+      case 'water':
+        return Icons.water_drop_outlined;
+      case 'electricity':
+        return Icons.electrical_services_outlined;
+      case 'waste':
+        return Icons.delete_outline;
+      case 'public_safety':
+        return Icons.security_outlined;
+      default:
+        return Icons.report_problem_outlined;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('My Submitted Issues'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        title: const Text(
+          'My Submitted Issues',
+          style: TextStyle(
+            color: Color(0xFF1E293B),
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: const Color(0xFFE2E8F0),
+          ),
+        ),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _userIssues,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+              ),
+            );
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: Colors.red.shade400,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading issues',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red.shade400,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${snapshot.error}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF64748B),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
           }
 
           final issues = snapshot.data ?? [];
 
           if (issues.isEmpty) {
-            return const Center(child: Text('No issues submitted yet.'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      Icons.assignment_outlined,
+                      size: 48,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'No Issues Yet',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Issues you submit will appear here',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
 
           return ListView.builder(
+            padding: const EdgeInsets.all(16),
             itemCount: issues.length,
             itemBuilder: (context, index) {
               final issue = issues[index];
@@ -78,42 +196,165 @@ class _HistoryScreenState extends State<HistoryScreen> {
               final description = issue['description'] ?? '';
               final category = issue['category'] ?? 'General';
 
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: ListTile(
-                  leading: imageUrls.isNotEmpty
-                      ? ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.network(
-                      imageUrls.first,
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.image_not_supported),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
-                  )
-                      : const Icon(Icons.image_not_supported, size: 40),
-                  title: Text(title,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (description.isNotEmpty)
-                        Text('📝 $description',
-                            style: const TextStyle(fontSize: 13)),
-                      Text('📂 Category: $category',
-                          style: const TextStyle(fontSize: 13)),
-                      const SizedBox(height: 4),
-                      Text('📍 $address',
-                          style: const TextStyle(fontSize: 13)),
-                      if (createdAt != null)
+                      // Header with status
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(status).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              _getCategoryIcon(category),
+                              size: 20,
+                              color: _getStatusColor(status),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1E293B),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  category,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF64748B),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(status).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              status.replaceAll('_', ' ').toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: _getStatusColor(status),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Description
+                      if (description.isNotEmpty) ...[
+                        const SizedBox(height: 12),
                         Text(
-                          '🕒 ${createdAt.toLocal().toString().split('.').first}',
-                          style: const TextStyle(fontSize: 13),
+                          description,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF475569),
+                            height: 1.4,
+                          ),
                         ),
-                      Text('🟡 Status: $status',
-                          style: const TextStyle(fontSize: 13)),
+                      ],
+
+                      // Image
+                      if (imageUrls.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            imageUrls.first,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              height: 120,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.image_not_supported,
+                                size: 40,
+                                color: Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 16),
+
+                      // Footer info
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 16,
+                            color: Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              address,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (createdAt != null) ...[
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.access_time,
+                              size: 16,
+                              color: Color(0xFF64748B),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _formatDate(createdAt),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -123,5 +364,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
         },
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      return 'Today';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 }

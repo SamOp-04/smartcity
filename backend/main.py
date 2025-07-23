@@ -112,7 +112,7 @@ async def assess_issue_damage(issue: IssueData) -> Optional[dict]:
         if not issue.image_urls:
             logger.warning(f"No images available for issue {issue.id}")
             return {
-                "priority_score": 50,  # Default score
+                "priority_score": 10,  # Default score
                 "reasoning": "No images provided for assessment. Using default priority score."
             }
         

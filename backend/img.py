@@ -106,6 +106,7 @@ SCORING SCALE:
 
 Analyze the image carefully and provide ONLY a priority score (1-100) based on the visible damage severity, type of infrastructure affected, and potential consequences. Be specific and justify your score with clear reasoning based on what you observe in the image.
 image can contain things which are false or ai generated or edited u need to give them a low priority 
+if not at all related rate them 0
 Respond with your assessment and priority score in json format as 'PriorityScore' = ."""
 
         try:

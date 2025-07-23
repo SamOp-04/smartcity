@@ -32,7 +32,7 @@ class _IssueReportFormState extends State<IssueReportForm>
   LatLng? _selectedLocation;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  static const String BACKEND_URL = 'http://192.168.1.212:8000'; 
+  static const String BACKEND_URL = 'http://192.168.109.8:8000'; 
   final List<Map<String, dynamic>> _categories = [
     {'name': 'General', 'icon': Icons.help_outline, 'color': Colors.blue},
     {'name': 'Infrastructure', 'icon': Icons.construction, 'color': Colors.orange},
@@ -332,8 +332,6 @@ Future<void> _submitForm() async {
 
       final userId = SupabaseClientManager.client.auth.currentUser?.id;
       if (userId == null) throw Exception('User not authenticated');
-
-      // Insert the issue and get the ID
       final response = await SupabaseClientManager.client.from('issues').insert({
         'user_id': userId,
         'title': _titleController.text.trim(),
@@ -368,10 +366,6 @@ Future<void> _submitForm() async {
         }
       } else {
         throw Exception('Failed to insert issue');
-      }
-    } on PostgrestException catch (e) {
-      if (mounted) {
-        _showSnackBar('Database error: ${e.message}', SnackBarType.error);
       }
     } catch (e) {
       if (mounted) {
