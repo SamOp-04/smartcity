@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:http/http.dart' as http;
 import '../supabase_client.dart';
 
 class IssueReportForm extends StatefulWidget {
@@ -30,7 +32,7 @@ class _IssueReportFormState extends State<IssueReportForm>
   LatLng? _selectedLocation;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-
+  static const String BACKEND_URL = 'http://192.168.1.212:8000'; 
   final List<Map<String, dynamic>> _categories = [
     {'name': 'General', 'icon': Icons.help_outline, 'color': Colors.blue},
     {'name': 'Infrastructure', 'icon': Icons.construction, 'color': Colors.orange},
@@ -276,8 +278,35 @@ class _IssueReportFormState extends State<IssueReportForm>
       return null;
     }
   }
+Future<void> _triggerAssessment(String issueId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$BACKEND_URL/assess-issue'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'issue_id': issueId,
+        }),
+      );
 
-  Future<void> _submitForm() async {
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success']) {
+          _showSnackBar('Issue queued for AI assessment!', SnackBarType.success);
+        } else {
+          _showSnackBar('Assessment queuing failed: ${data['message']}', SnackBarType.warning);
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      print('Assessment trigger error: $e');
+      _showSnackBar('Assessment queuing failed, but issue was saved', SnackBarType.warning);
+    }
+  }
+
+Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -304,7 +333,8 @@ class _IssueReportFormState extends State<IssueReportForm>
       final userId = SupabaseClientManager.client.auth.currentUser?.id;
       if (userId == null) throw Exception('User not authenticated');
 
-      await SupabaseClientManager.client.from('issues').insert({
+      // Insert the issue and get the ID
+      final response = await SupabaseClientManager.client.from('issues').insert({
         'user_id': userId,
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
@@ -316,17 +346,28 @@ class _IssueReportFormState extends State<IssueReportForm>
         'longitude': latLng.longitude,
       }).select();
 
-      if (mounted) {
-        _showSnackBar('Issue reported successfully!', SnackBarType.success);
-        _formKey.currentState!.reset();
-        setState(() {
-          _imageFiles.clear();
-          _selectedCategory = 'General';
-          _uploadedImageUrls.clear();
-          _titleController.clear();
-          _descriptionController.clear();
-          _addressController.clear();
-        });
+      if (response.isNotEmpty) {
+        final issueId = response[0]['id'].toString();
+        
+        if (mounted) {
+          _showSnackBar('Issue reported successfully!', SnackBarType.success);
+          
+          // Trigger AI assessment in the background
+          _triggerAssessment(issueId);
+          
+          // Reset the form
+          _formKey.currentState!.reset();
+          setState(() {
+            _imageFiles.clear();
+            _selectedCategory = 'General';
+            _uploadedImageUrls.clear();
+            _titleController.clear();
+            _descriptionController.clear();
+            _addressController.clear();
+          });
+        }
+      } else {
+        throw Exception('Failed to insert issue');
       }
     } on PostgrestException catch (e) {
       if (mounted) {
@@ -815,4 +856,4 @@ class _IssueReportFormState extends State<IssueReportForm>
   }
 }
 
-enum SnackBarType { success, error }
+enum SnackBarType { success, error, warning }
