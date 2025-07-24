@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI app
 app = FastAPI(title="Infrastructure Damage Assessment API", version="1.0.0")
 
-# Supabase configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL",)
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", )
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)

@@ -1,5 +1,8 @@
 {
     "git.ignoreLimitWarning": true,
     "java.configuration.updateBuildConfiguration": "disabled",
-    "cmake.sourceDirectory": "C:/Users/samas/Documents/GitHub/smartcity/application/linux"
+    "cmake.sourceDirectory": "C:/Users/samas/Documents/GitHub/smartcity/application/linux",
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
+    "python-envs.pythonProjects": []
 }

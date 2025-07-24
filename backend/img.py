@@ -4,6 +4,7 @@ from PIL import Image
 import requests
 import json
 import os
+import re
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 class InfrastructureDamageAssessor:
@@ -58,6 +59,31 @@ class InfrastructureDamageAssessor:
             print(f"Error loading image from path: {e}")
             return None
     
+    def _clean_response(self, response):
+        """Clean the model response from unwanted tokens and repeated content"""
+        
+        # Remove common instruction tokens
+        unwanted_tokens = ['[INST]', '[/INST]', '<s>', '</s>', '<|im_start|>', '<|im_end|>']
+        for token in unwanted_tokens:
+            response = response.replace(token, '')
+        
+        # Remove repeated prompt content patterns
+        patterns_to_remove = [
+            r'You are an expert infrastructure damage assessor.*?json format as [\'"]PriorityScore[\'"] = \.',
+            r'SITUATION REPORT:.*?if not at all related rate them 0',
+            r'Analyze this image.*?priority score in json format',
+            r'ASSESSMENT CRITERIA:.*?SCORING SCALE:.*?- 1-29: MINIMAL.*?cosmetic or very minor issues',
+        ]
+        
+        for pattern in patterns_to_remove:
+            response = re.sub(pattern, '', response, flags=re.DOTALL | re.IGNORECASE)
+        
+        # Clean up extra whitespace and newlines
+        response = re.sub(r'\n\s*\n', '\n', response)  # Remove empty lines
+        response = response.strip()
+        
+        return response
+    
     def assess_damage(self, heading, description, image_source):
         """
         Assess infrastructure damage and return priority score
@@ -84,7 +110,7 @@ class InfrastructureDamageAssessor:
                 "reasoning": "Cannot assess damage without valid image"
             }
         
-        # Create assessment prompt
+        # Create shortened assessment prompt to reduce repetition
         assessment_prompt = f"""You are an expert infrastructure damage assessor. Analyze this image of city infrastructure damage and provide a priority score.
 
 SITUATION REPORT:
@@ -130,20 +156,20 @@ Respond with your assessment and priority score in json format as 'PriorityScore
             with torch.no_grad():
                 outputs = self.model.generate(
                     **inputs,
-                    max_new_tokens=300,
+                    max_new_tokens=350,  # Reduced from 300 to get cleaner responses
                     do_sample=True,
-                    temperature=0.3,  # Lower temperature for more consistent scoring
+                    temperature=0.3,
                     top_p=0.9,
                     top_k=50,
                     pad_token_id=self.processor.tokenizer.eos_token_id
                 )
             
-            response = self.processor.decode(outputs[0], skip_special_tokens=True)
+            # FIXED: Decode only the newly generated tokens, excluding the input prompt
+            input_length = inputs['input_ids'].shape[1]
+            answer = self.processor.decode(outputs[0][input_length:], skip_special_tokens=True).strip()
             
-            if "ASSISTANT:" in response:
-                answer = response.split("ASSISTANT:")[-1].strip()
-            else:
-                answer = response.strip()
+            # Additional cleaning
+            answer = self._clean_response(answer)
             
             # Extract priority score from response
             priority_score = self._extract_priority_score(answer)
@@ -164,8 +190,6 @@ Respond with your assessment and priority score in json format as 'PriorityScore
     
     def _extract_priority_score(self, response_text):
         """Extract numerical priority score from model response"""
-        import re
-        import json
         
         # First try to extract from JSON structure
         try:
@@ -185,17 +209,17 @@ Respond with your assessment and priority score in json format as 'PriorityScore
                         if key_lower in ['priorityscore', 'priority', 'score']:
                             if isinstance(value, (int, float)):
                                 score = int(value)
-                                if 1 <= score <= 100:
+                                if 0 <= score <= 100:  # Allow 0 for fake/unrelated images
                                     return score
                         elif isinstance(value, dict):
                             # Recursively search nested dictionaries
                             nested_score = find_score_in_dict(value)
-                            if nested_score:
+                            if nested_score is not None:
                                 return nested_score
                     return None
                 
                 score = find_score_in_dict(parsed_json)
-                if score:
+                if score is not None:
                     return score
                     
         except (json.JSONDecodeError, ValueError, KeyError) as e:
@@ -221,11 +245,15 @@ Respond with your assessment and priority score in json format as 'PriorityScore
             matches = re.findall(pattern, response_text, re.IGNORECASE)
             if matches:
                 score = int(matches[-1])  # Take the last match (most likely the final score)
-                if 1 <= score <= 100:
+                if 0 <= score <= 100:
                     return score
         
         # If no explicit score found, analyze response content for severity indicators
         response_lower = response_text.lower()
+        
+        # Check for fake/unrelated content indicators first
+        if any(word in response_lower for word in ['game', 'video game', 'valorant', 'virtual', 'digital', 'fake', 'ai generated', 'not related']):
+            return 0
         
         if any(word in response_lower for word in ['critical', 'emergency', 'life-threatening', 'immediate danger']):
             return 95
@@ -240,6 +268,7 @@ Respond with your assessment and priority score in json format as 'PriorityScore
         
         # Default fallback
         return 50
+
 # Initialize the assessor
 # assessor = InfrastructureDamageAssessor()
 
