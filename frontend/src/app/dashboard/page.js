@@ -1,67 +1,70 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import StatsCard from '../components/StatsCard'
 import CategoryPieChart from '../components/CategoryPieChart'
 import RecentComplaintTable from '../components/RecentComplaintTable'
 import { fetchIssues } from '../../lib/issueApi'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-// And add these to your component:
 
 export default function DashboardPage() {
-  const [hasMounted, setHasMounted] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
   const [issues, setIssues] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-const router = useRouter()
-const supabase = createClientComponentClient()
+  const router = useRouter()
+  const supabase = createClientComponentClient()
+  const darkRef = useRef(darkMode)
+
   useEffect(() => {
-    console.log('User activity - Dashboard mounted');
-    setHasMounted(true)
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true'
-    setDarkMode(savedDarkMode)
-
-    const handleStorageChange = () => {
-      const newDarkMode = localStorage.getItem('darkMode') === 'true'
-      setDarkMode(newDarkMode)
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-
-    const interval = setInterval(() => {
-      const newDarkMode = localStorage.getItem('darkMode') === 'true'
-      if (newDarkMode !== darkMode) setDarkMode(newDarkMode)
-    }, 100)
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      clearInterval(interval)
-    }
+    darkRef.current = darkMode
   }, [darkMode])
 
-useEffect(() => {
-  const checkUser = async () => {
-    
-    console.log('User activity - Checking user authentication');
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-    } else {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single()
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newDark = localStorage.getItem('darkMode') === 'true'
+      if (newDark !== darkRef.current) {
+        setDarkMode(newDark)
+      }
+    }, 100)
+    return () => clearInterval(interval)
+  }, [])
 
-      if (profileError || profileData.role !== 'admin') {
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { user: currentUser }, error } = await supabase.auth.getUser()
+        if (error) {
+          console.error('Error fetching user:', error)
+          router.push('/login')
+          return
+        }
+        if (!currentUser) {
+          console.log('No user found, redirecting to login')
+          router.push('/login')
+          return
+        }
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', currentUser.id)
+          .single()
+        if (profileError) {
+          console.error('Error fetching profile:', profileError)
+          router.push('/login')
+          return
+        }
+        if (profileData?.role !== 'admin') {
+          console.log('User does not have admin role, redirecting to login')
+          router.push('/login')
+        }
+      } catch (err) {
+        console.error('Unexpected error in auth check:', err)
         router.push('/login')
       }
     }
-  }
-  checkUser()
-}, [router, supabase])
-
+    checkUser()
+  }, [router, supabase])
 
   useEffect(() => {
     const loadIssues = async () => {
@@ -78,19 +81,13 @@ useEffect(() => {
         setLoading(false)
       }
     }
-
     loadIssues()
   }, [])
 
-  // Early return AFTER all hooks
-  if (!hasMounted) return null 
-
-  // Calculate stats from real data - ensure they're always numbers
   const resolved = issues?.filter(issue => issue.status === 'Resolved')?.length || 0
   const inProgress = issues?.filter(issue => issue.status === 'In Progress')?.length || 0
   const assessed = issues?.filter(issue => issue.status === 'Assessed')?.length || 0
 
-  // Transform issues data to match expected format for components
   const transformedIssues = issues?.map(issue => ({
     id: issue.id,
     user: issue.user_name || issue.user_email || issue.created_by || 'Unknown User',
@@ -102,11 +99,9 @@ useEffect(() => {
     priority: issue.priority || 'Medium',
     assigned_to: issue.assigned_to || null,
     resolved_at: issue.resolved_at || null,
-    // Add any other fields your components might need
     ...issue
   })) || []
 
-  // Handle loading state
   if (loading) {
     return (
       <div className="min-h-screen p-4 sm:p-6 flex items-center justify-center">
@@ -118,7 +113,6 @@ useEffect(() => {
     )
   }
 
-  // Handle error state
   if (error) {
     return (
       <div className="min-h-screen p-4 sm:p-6 flex items-center justify-center">
@@ -129,8 +123,8 @@ useEffect(() => {
             </svg>
           </div>
           <p className="text-red-500 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Retry
@@ -142,10 +136,9 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen p-4 sm:p-6">
-      {/* Header with animated gradient */}
       <div className="mb-8">
         <h1 className={`text-4xl font-bold mb-2 transition-colors duration-300 ${
-          darkMode 
+          darkMode
             ? 'bg-gradient-to-r from-slate-200 via-blue-400 to-purple-400 bg-clip-text text-transparent'
             : 'bg-gradient-to-r from-slate-900 via-blue-700 to-purple-700 bg-clip-text text-transparent'
         }`}>
@@ -157,26 +150,19 @@ useEffect(() => {
           Monitor and manage your city&apos;s complaints and services
         </p>
       </div>
-
-      {/* Stats Cards - Pass real data */}
       <div className="mb-8">
         <StatsCard resolved={resolved} inProgress={inProgress} assessed={assessed} />
       </div>
-
-      {/* Category Pie Chart - Pass real issues data */}
       <div className="mb-8">
         <CategoryPieChart issues={transformedIssues} />
       </div>
-
-      {/* Recent Complaints Table - Pass real data with update handler */}
       <div>
-        <RecentComplaintTable 
-          complaints={transformedIssues} 
+        <RecentComplaintTable
+          complaints={transformedIssues}
           onStatusUpdate={async (id, status) => {
             try {
               const { updateIssueStatus } = await import('../../lib/issueApi')
               await updateIssueStatus(id, status)
-              // Refresh the issues list
               const updatedIssues = await fetchIssues()
               setIssues(updatedIssues || [])
             } catch (err) {

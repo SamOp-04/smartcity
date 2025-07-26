@@ -13,6 +13,7 @@ import {
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from './useAuth'
+
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState('login')
   const [showPassword, setShowPassword] = useState(false)
@@ -21,7 +22,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('') // 'success' or 'error'
-const { user, loadiing } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -29,29 +30,21 @@ const { user, loadiing } = useAuth()
   const router = useRouter()
   const supabase = createClientComponentClient()
 
-  // Check if user is already logged in and has admin access
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (loadiing) return
+      if (authLoading) return
       if (user) {
-        // Check if user has admin role
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-        .select('role, username')
-        .eq('user_id', user.id)
-        .single()
-        .then(({ data, error }) => {
-          if (!error && data?.role === 'admin') {
-            router.push('/dashboard')
-          } else {
-            supabase.auth.signOut()}})
+            .select('role, username')
+            .eq('user_id', user.id)
+            .single()
 
-          if (!profileError && profileData && profileData.role === 'admin') {
+          if (!profileError && profileData?.role === 'admin') {
             router.push('/dashboard')
           } else {
-            // User exists but doesn't have admin role, sign them out
             await supabase.auth.signOut()
           }
         } catch (error) {
@@ -61,41 +54,34 @@ const { user, loadiing } = useAuth()
       }
     }
     checkUser()
-  }, [user, loadiing,router, supabase])
+  }, [user, authLoading, router, supabase])
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value)
     setShowPassword(true)
     setTyping(true)
-if (typing)
-{ }
-    if (passwordTimeout) clearTimeout(passwordTimeout)
 
+    if (passwordTimeout) clearTimeout(passwordTimeout)
     const timeout = setTimeout(() => {
       setShowPassword(false)
       setTyping(false)
     }, 1000)
-
     setPasswordTimeout(timeout)
   }
 
   const validateForm = () => {
     const errs = {}
-
     if (activeTab === 'signup') {
       if (!fullName.trim() || fullName.trim().split(' ').length < 2) {
         errs.fullName = 'Please enter your full name (first and last)'
       }
     }
-
     if (!email.includes('@') || !email.includes('.')) {
       errs.email = 'Invalid email format'
     }
-
     if (password.length < 6) {
       errs.password = 'Password must be at least 6 characters'
     }
-
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -115,7 +101,6 @@ if (typing)
         email,
         password,
       })
-
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
           showMessage('Invalid email or password. Please try again.', 'error')
@@ -126,42 +111,32 @@ if (typing)
         }
         return
       }
-
       if (data.user) {
-        // Check user role in profiles table
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('role, username')
             .eq('user_id', data.user.id)
             .single()
-
           if (profileError) {
             console.error('Profile fetch error:', profileError)
             showMessage('Account profile not found. Please contact support.', 'error')
-            // Sign out the user since they don't have a valid profile
             await supabase.auth.signOut()
             return
           }
-
           if (!profileData || profileData.role !== 'admin') {
             showMessage('Access denied. This application is restricted to administrators only.', 'error')
-            // Sign out the user since they don't have admin access
             await supabase.auth.signOut()
             return
           }
-
-          // If we reach here, user is authenticated and has admin role
           showMessage(`Welcome back, ${profileData.username || 'Admin'}! Redirecting...`, 'success')
           setTimeout(() => {
             router.push('/dashboard')
           }, 1500)
-
         } catch (profileErr) {
           console.error('Profile check failed:', profileErr)
           showMessage('Unable to verify account permissions. Please try again.', 'error')
           await supabase.auth.signOut()
-          return
         }
       }
     } catch (error) {
@@ -189,36 +164,30 @@ if (typing)
         }
         return
       }
-
       if (data.user) {
         try {
           const { error: profileError } = await supabase
             .from('profiles')
-  .upsert({
-    user_id: data.user.id,
-    username: fullName,
-    email,
-    role: 'admin',
-    created_at: new Date().toISOString(),
-  })
-  .eq('user_id', data.user.id)
-
+            .upsert({
+              user_id: data.user.id,
+              username: fullName,
+              email,
+              role: 'admin',
+              created_at: new Date().toISOString(),
+            })
+            .eq('user_id', data.user.id)
           if (profileError) {
             console.error('Profile creation error:', profileError)
-            // Don't show error to user as account is still created
           }
         } catch (profileErr) {
           console.error('Profile insertion failed:', profileErr)
         }
-
         if (data.user.email_confirmed_at) {
-          // User is immediately confirmed (email confirmation disabled)
           showMessage('Admin account created successfully! Redirecting...', 'success')
           setTimeout(() => {
             router.push('/dashboard')
           }, 1500)
         } else {
-          // Email confirmation required
           showMessage('Admin account created! Please check your email and click the confirmation link to complete your registration.', 'success')
           setActiveTab('login')
         }
@@ -231,12 +200,9 @@ if (typing)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
     if (!validateForm()) return
-
     setLoading(true)
     setMessage('')
-
     try {
       if (activeTab === 'login') {
         await handleLogin()
@@ -256,7 +222,6 @@ if (typing)
           redirectTo: `${window.location.origin}/auth/callback`
         }
       })
-
       if (error) {
         showMessage(`Error signing in with ${provider}: ${error.message}`, 'error')
       }
@@ -268,18 +233,15 @@ if (typing)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center px-4 py-4">
-      {/* Logo and Name */}
       <div className="flex items-center justify-center -mt-10">
         <img src="/logo.png" alt="SmartCity360 Logo" className="w-25 h-25 -mt-6" />
         <span className="text-2xl font-bold text-blue-600 -ml-2 -mt-6">SmartCity360</span>
       </div>
-
       <div className="bg-white shadow-lg hover:shadow-2xl transition duration-300 rounded-xl max-w-md w-full p-8">
-        {/* Message Display */}
         {message && (
           <div className={`mb-4 p-3 rounded-md flex items-center ${
-            messageType === 'success' 
-              ? 'bg-green-50 text-green-800 border border-green-200' 
+            messageType === 'success'
+              ? 'bg-green-50 text-green-800 border border-green-200'
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}>
             {messageType === 'success' ? (
@@ -290,8 +252,6 @@ if (typing)
             <span className="text-sm">{message}</span>
           </div>
         )}
-
-        {/* Tabs */}
         <div className="flex justify-center space-x-6 mb-6 border-b border-gray-200">
           <button
             className={`pb-2 text-lg font-semibold ${activeTab === 'login' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
@@ -314,9 +274,7 @@ if (typing)
             Sign Up
           </button>
         </div>
-
         <div className="space-y-4">
-          {/* Full Name */}
           {activeTab === 'signup' && (
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">Full Name</label>
@@ -335,8 +293,6 @@ if (typing)
               {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
             </div>
           )}
-
-          {/* Email */}
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-700">Email</label>
             <div className={`flex items-center border rounded-md px-3 py-2 ${errors.email ? 'border-red-500' : 'border-gray-300'}`}>
@@ -353,8 +309,6 @@ if (typing)
             </div>
             {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
           </div>
-
-          {/* Password */}
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-700">Password</label>
             <div className={`flex items-center border rounded-md px-3 py-2 ${errors.password ? 'border-red-500' : 'border-gray-300'}`}>
@@ -368,8 +322,8 @@ if (typing)
                 disabled={loading}
                 required
               />
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={loading}
               >
@@ -382,8 +336,6 @@ if (typing)
             </div>
             {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
           </div>
-
-          {/* Remember + Forgot */}
           {activeTab === 'login' && (
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -393,15 +345,13 @@ if (typing)
               <Link href="#" className="text-[14px] text-blue-600 hover:underline">Forgot password?</Link>
             </div>
           )}
-
-          {/* Submit Button */}
           <button
             type="button"
             onClick={handleSubmit}
             disabled={loading}
             className={`w-full py-2 rounded-md text-sm font-medium transition-colors ${
-              loading 
-                ? 'bg-gray-400 cursor-not-allowed' 
+              loading
+                ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700'
             } text-white`}
           >
@@ -415,17 +365,13 @@ if (typing)
             )}
           </button>
         </div>
-
-        {/* Divider */}
         <div className="flex items-center my-6">
           <hr className="flex-grow border-gray-300" />
           <span className="px-4 text-[14px] text-gray-500">or continue with</span>
           <hr className="flex-grow border-gray-400" />
         </div>
-
-        {/* Social Buttons */}
         <div className="flex justify-between gap-4 mt-6">
-          <button 
+          <button
             className="w-full flex items-center justify-center border px-4 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
             onClick={() => handleSocialLogin('google')}
             disabled={loading}
@@ -433,7 +379,7 @@ if (typing)
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5 mr-2" />
             Google
           </button>
-          <button 
+          <button
             className="w-full flex items-center justify-center border px-4 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
             onClick={() => handleSocialLogin('facebook')}
             disabled={loading}
@@ -443,8 +389,6 @@ if (typing)
           </button>
         </div>
       </div>
-
-      {/* Footer */}
       <p className="mt-6 text-center text-[14px] text-gray-400 tracking-wide">
         © 2025 SmartCity360. All rights reserved.
       </p>
