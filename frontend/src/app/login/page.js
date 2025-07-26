@@ -13,13 +13,11 @@ import {
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
 import Image from 'next/image'
-
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState('login')
   const [showPassword, setShowPassword] = useState(false)
   const [passwordTimeout, setPasswordTimeout] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [initialLoading, setInitialLoading] = useState(true) // Add initial loading state
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('') // 'success' or 'error'
 
@@ -33,65 +31,41 @@ export default function LoginPage() {
   // Check if user is already logged in and has admin access
   useEffect(() => {
     const checkUser = async () => {
-      try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        
-        if (userError) {
-          console.error('Auth error:', userError)
-          setInitialLoading(false)
-          return
-        }
-
-        if (user) {
-          // Check if user has admin role
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // Check if user has admin role
+        try {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('role, username')
+            .select('role')
             .eq('user_id', user.id)
             .single()
 
           if (!profileError && profileData && profileData.role === 'admin') {
-            // User is authenticated and has admin role
-            router.replace('/dashboard')
-            return
+            router.push('/dashboard')
           } else {
             // User exists but doesn't have admin role, sign them out
-            console.log('User does not have admin role, signing out')
             await supabase.auth.signOut()
           }
+        } catch (error) {
+          console.error('Profile check error:', error)
+          await supabase.auth.signOut()
         }
-      } catch (error) {
-        console.error('User check error:', error)
-        // Sign out on any error to prevent auth loops
-        await supabase.auth.signOut()
-      } finally {
-        setInitialLoading(false)
       }
     }
-
     checkUser()
-  }, [router, supabase])
-
-  // Add auth state change listener to handle logout
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'SIGNED_OUT') {
-        // Clear any cached data and redirect to login
-        router.replace('/login')
-      }
-    })
-
-    return () => subscription.unsubscribe()
   }, [router, supabase])
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value)
     setShowPassword(true)
+    setTyping(true)
 
     if (passwordTimeout) clearTimeout(passwordTimeout)
 
     const timeout = setTimeout(() => {
       setShowPassword(false)
+      setTyping(false)
     }, 1000)
 
     setPasswordTimeout(timeout)
@@ -147,30 +121,40 @@ export default function LoginPage() {
 
       if (data.user) {
         // Check user role in profiles table
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('role, username')
-          .eq('user_id', data.user.id)
-          .single()
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('role, username')
+            .eq('user_id', data.user.id)
+            .single()
 
-        if (profileError) {
-          console.error('Profile fetch error:', profileError)
-          showMessage('Account profile not found. Please contact support.', 'error')
+          if (profileError) {
+            console.error('Profile fetch error:', profileError)
+            showMessage('Account profile not found. Please contact support.', 'error')
+            // Sign out the user since they don't have a valid profile
+            await supabase.auth.signOut()
+            return
+          }
+
+          if (!profileData || profileData.role !== 'admin') {
+            showMessage('Access denied. This application is restricted to administrators only.', 'error')
+            // Sign out the user since they don't have admin access
+            await supabase.auth.signOut()
+            return
+          }
+
+          // If we reach here, user is authenticated and has admin role
+          showMessage(`Welcome back, ${profileData.username || 'Admin'}! Redirecting...`, 'success')
+          setTimeout(() => {
+            router.push('/dashboard')
+          }, 1500)
+
+        } catch (profileErr) {
+          console.error('Profile check failed:', profileErr)
+          showMessage('Unable to verify account permissions. Please try again.', 'error')
           await supabase.auth.signOut()
           return
         }
-
-        if (!profileData || profileData.role !== 'admin') {
-          showMessage('Access denied. This application is restricted to administrators only.', 'error')
-          await supabase.auth.signOut()
-          return
-        }
-
-        // Success - redirect will be handled by auth state change
-        showMessage(`Welcome back, ${profileData.username || 'Admin'}! Redirecting...`, 'success')
-        // Don't use setTimeout here, let the auth state change handle the redirect
-        router.push('/dashboard')
-
       }
     } catch (error) {
       showMessage('An unexpected error occurred. Please try again.', 'error')
@@ -179,54 +163,91 @@ export default function LoginPage() {
   }
 
   const handleSignup = async () => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username: fullName,
-          },
-        },
-      })
-
-      if (error) {
-        if (error.message.includes('User already registered')) {
-          showMessage('An account with this email already exists. Please sign in instead.', 'error')
-        } else {
-          showMessage(error.message, 'error')
-        }
-        return
-      }
-
-      if (data.user) {
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({ 
-            user_id: data.user.id,
-            username: fullName,
-            role: 'admin',
-            email: email
-          }, {
-            onConflict: 'user_id'
-          })
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError)
-          showMessage('Account created but profile setup failed. Please contact support.', 'error')
-          return
-        }
-
-        showMessage('Account created successfully! Please check your email for verification.', 'success')
-        setActiveTab('login') // Switch to login tab
-      }
-    } catch (error) {
-      showMessage('An unexpected error occurred. Please try again.', 'error')
-      console.error('Signup error:', error)
+  try {
+    // Validate required fields before attempting signup
+    if (!fullName.trim()) {
+      showMessage('Full name is required', 'error');
+      return;
     }
-  }
+    
+    if (!email.trim()) {
+      showMessage('Email is required', 'error');
+      return;
+    }
 
+    console.log('Attempting signup with:', { fullName, email }); // Debug log
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username: fullName.trim(),
+        },
+      },
+    })
+
+    if (error) {
+      console.error('Signup error:', error);
+      if (error.message.includes('User already registered')) {
+        showMessage('An account with this email already exists. Please sign in instead.', 'error')
+      } else {
+        showMessage(error.message, 'error')
+      }
+      return
+    }
+
+    // Check if user was created successfully
+    if (!data || !data.user || !data.user.id) {
+      console.error('User creation failed - no user data returned:', data);
+      showMessage('Account creation failed. Please try again.', 'error');
+      return;
+    }
+
+    console.log('User created successfully:', data.user.id); // Debug log
+
+    try {
+      // Ensure we have the required data
+      const profileData = {
+        user_id: data.user.id,
+        username: fullName.trim(),
+        role: 'admin',
+        email: email.trim()
+      };
+
+      console.log('Inserting profile data:', profileData); // Debug log
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert(profileData, {
+          onConflict: 'user_id'
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        showMessage('Account created but profile setup failed. Please contact support.', 'error');
+        return;
+      }
+
+      console.log('Profile created successfully'); // Debug log
+      showMessage('Account created successfully! Please check your email to confirm your account.', 'success');
+      
+      // Switch to login tab after successful signup
+      setTimeout(() => {
+        setActiveTab('login');
+        setMessage('');
+      }, 3000);
+
+    } catch (profileErr) {
+      console.error('Profile insertion failed:', profileErr);
+      showMessage('Account created but profile setup failed. Please contact support.', 'error');
+      return;
+    }
+  } catch (error) {
+    console.error('Unexpected signup error:', error);
+    showMessage('An unexpected error occurred. Please try again.', 'error');
+  }
+}
   const handleSubmit = async (e) => {
     e.preventDefault()
     
@@ -257,26 +278,11 @@ export default function LoginPage() {
 
       if (error) {
         showMessage(`Error signing in with ${provider}: ${error.message}`, 'error')
-        console.error('Social login error:', error)
+        console.error(`Social login error with ${provider}:`, error)
       }
-    } catch (err) {
+    } catch (error) {
       showMessage(`An error occurred with ${provider} login.`, 'error')
-      console.error('Social login error:', err)
     }
-  }
-
-  // Show loading screen while checking auth
-  if (initialLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-        <div className="bg-white rounded-xl p-8 shadow-lg">
-          <div className="flex items-center justify-center space-x-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            <span className="text-gray-600">Checking authentication...</span>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -444,12 +450,12 @@ export default function LoginPage() {
             disabled={loading}
           >
             <Image
-              src="https://www.svgrepo.com/show/475656/google-color.svg"
-              alt="Google"
-              width={20}
-              height={20}
-              className="w-5 h-5 mr-2"
-            />
+  src="https://www.svgrepo.com/show/475656/google-color.svg"
+  alt="Google"
+  width={20}
+  height={20}
+  className="w-5 h-5 mr-2"
+/>
             Google
           </button>
           <button 
@@ -458,13 +464,12 @@ export default function LoginPage() {
             disabled={loading}
           >
             <Image
-              src="https://www.svgrepo.com/show/475647/facebook-color.svg"
-              alt="Facebook"
-              width={20}
-              height={20}
-              className="w-5 h-5 mr-2"
-            />
-            Facebook
+  src="https://www.svgrepo.com/show/475647/facebook-color.svg"
+  alt="Facebook"
+  width={20}
+  height={20}
+  className="w-5 h-5 mr-2"
+/>
           </button>
         </div>
       </div>
