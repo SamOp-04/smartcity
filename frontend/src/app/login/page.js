@@ -41,7 +41,8 @@ export default function LoginPage() {
             .select('role, username')
             .eq('user_id', user.id)
             .single()
-
+if (typing)
+{}
           if (!profileError && profileData?.role === 'admin') {
             router.push('/dashboard')
           } else {
