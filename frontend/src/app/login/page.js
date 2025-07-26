@@ -282,6 +282,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       showMessage(`An error occurred with ${provider} login.`, 'error')
+      console.error(`Social login error with ${provider}:`, error)
     }
   }
 
