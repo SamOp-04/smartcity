@@ -6,7 +6,7 @@ import RecentComplaintTable from '../components/RecentComplaintTable'
 import { fetchIssues } from '../../lib/issueApi'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-// And add these to your component:
+import { useAuth } from './login/useAuth'
 
 export default function DashboardPage() {
   const [hasMounted, setHasMounted] = useState(false)
@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [issues, setIssues] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+    const { user, loadiing } = useAuth()
 const router = useRouter()
 const supabase = createClientComponentClient()
   useEffect(() => {
@@ -42,21 +43,31 @@ const supabase = createClientComponentClient()
 useEffect(() => {
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    
+     if (loadiing) return
+    if (!user) {
+      router.push('/login')
+    } else {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('user_id', user.id)
         .single()
+        .then(({ data, error }) => {
+          if (error || data?.role !== 'admin') {
+            supabase.auth.signOut().then(() => {
+              router.push('/login')
+            })
+          }
+        })
 
       if (profileError || profileData.role !== 'admin') {
         await supabase.auth.signOut()
         router.push('/login')
-      
+      }
     }
   }
   checkUser()
-}, [router, supabase])
+}, [user, loadiing,router, supabase])
 
 
   useEffect(() => {

@@ -74,7 +74,7 @@ export default function ComplaintsPage() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
-        router.replace('/login')
+        router.push('/login')
       }
     })
 

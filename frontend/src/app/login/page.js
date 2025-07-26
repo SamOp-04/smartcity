@@ -12,7 +12,7 @@ import {
   ExclamationCircleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
-
+import { useAuth } from './useAuth'
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState('login')
   const [showPassword, setShowPassword] = useState(false)
@@ -21,7 +21,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('') // 'success' or 'error'
-
+const { user, loadiing } = useAuth()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -33,14 +33,20 @@ export default function LoginPage() {
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
+      if (loadiing) return
       if (user) {
         // Check if user has admin role
         try {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('role')
-            .eq('user_id', user.id)
-            .single()
+        .select('role, username')
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data, error }) => {
+          if (!error && data?.role === 'admin') {
+            router.push('/dashboard')
+          } else {
+            supabase.auth.signOut()}})
 
           if (!profileError && profileData && profileData.role === 'admin') {
             router.push('/dashboard')
@@ -55,7 +61,7 @@ export default function LoginPage() {
       }
     }
     checkUser()
-  }, [router, supabase])
+  }, [user, loadiing,router, supabase])
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value)
