@@ -44,7 +44,7 @@ export default function LoginPage() {
             .single()
 
           if (!profileError && profileData?.role === 'admin') {
-            router.push('/test')
+            router.push('/dashboard')
           } else {
             await supabase.auth.signOut()
           }
@@ -141,7 +141,7 @@ export default function LoginPage() {
 
           showMessage(`Welcome back, ${profileData.username || 'Admin'}! Redirecting...`, 'success')
           setTimeout(() => {
-            router.push('/test')
+            router.push('/dashboard')
           }, 1500)
         } catch (profileErr) {
           console.error('Profile check failed:', profileErr)
