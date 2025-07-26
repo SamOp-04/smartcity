@@ -17,7 +17,7 @@ import { useAuth } from './useAuth'
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState('login')
   const [showPassword, setShowPassword] = useState(false)
-  const [typing, setTyping] = useState(false)
+  const [, setTyping] = useState(false)
   const [passwordTimeout, setPasswordTimeout] = useState(null)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
