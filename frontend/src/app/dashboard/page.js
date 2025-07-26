@@ -39,12 +39,6 @@ export default function DashboardPage() {
           return
         }
 
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', currentUser.id)
-          .single()
-
         
       } catch (err) {
         console.error('Unexpected error in auth check:', err)
