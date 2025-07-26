@@ -32,8 +32,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
       if (authLoading) return
+
+      const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         try {
           const { data: profileData, error: profileError } = await supabase
@@ -41,8 +42,7 @@ export default function LoginPage() {
             .select('role, username')
             .eq('user_id', user.id)
             .single()
-if (typing)
-{}
+
           if (!profileError && profileData?.role === 'admin') {
             router.push('/dashboard')
           } else {
@@ -55,18 +55,22 @@ if (typing)
       }
     }
     checkUser()
-  }, [user, authLoading, router, supabase])
+  }, [user, authLoading, router])
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value)
     setShowPassword(true)
     setTyping(true)
 
-    if (passwordTimeout) clearTimeout(passwordTimeout)
+    if (passwordTimeout) {
+      clearTimeout(passwordTimeout)
+    }
+
     const timeout = setTimeout(() => {
       setShowPassword(false)
       setTyping(false)
     }, 1000)
+
     setPasswordTimeout(timeout)
   }
 
@@ -102,6 +106,7 @@ if (typing)
         email,
         password,
       })
+
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
           showMessage('Invalid email or password. Please try again.', 'error')
@@ -112,6 +117,7 @@ if (typing)
         }
         return
       }
+
       if (data.user) {
         try {
           const { data: profileData, error: profileError } = await supabase
@@ -119,17 +125,20 @@ if (typing)
             .select('role, username')
             .eq('user_id', data.user.id)
             .single()
+
           if (profileError) {
             console.error('Profile fetch error:', profileError)
             showMessage('Account profile not found. Please contact support.', 'error')
             await supabase.auth.signOut()
             return
           }
+
           if (!profileData || profileData.role !== 'admin') {
             showMessage('Access denied. This application is restricted to administrators only.', 'error')
             await supabase.auth.signOut()
             return
           }
+
           showMessage(`Welcome back, ${profileData.username || 'Admin'}! Redirecting...`, 'success')
           setTimeout(() => {
             router.push('/dashboard')
@@ -141,8 +150,8 @@ if (typing)
         }
       }
     } catch (error) {
-      showMessage('An unexpected error occurred. Please try again.', 'error')
       console.error('Login error:', error)
+      showMessage('An unexpected error occurred. Please try again.', 'error')
     }
   }
 
@@ -157,6 +166,7 @@ if (typing)
           },
         },
       })
+
       if (error) {
         if (error.message.includes('User already registered')) {
           showMessage('An account with this email already exists. Please sign in instead.', 'error')
@@ -165,6 +175,7 @@ if (typing)
         }
         return
       }
+
       if (data.user) {
         try {
           const { error: profileError } = await supabase
@@ -177,12 +188,14 @@ if (typing)
               created_at: new Date().toISOString(),
             })
             .eq('user_id', data.user.id)
+
           if (profileError) {
             console.error('Profile creation error:', profileError)
           }
         } catch (profileErr) {
           console.error('Profile insertion failed:', profileErr)
         }
+
         if (data.user.email_confirmed_at) {
           showMessage('Admin account created successfully! Redirecting...', 'success')
           setTimeout(() => {
@@ -194,8 +207,8 @@ if (typing)
         }
       }
     } catch (error) {
-      showMessage('An unexpected error occurred. Please try again.', 'error')
       console.error('Signup error:', error)
+      showMessage('An unexpected error occurred. Please try again.', 'error')
     }
   }
 
@@ -224,11 +237,12 @@ if (typing)
         }
       })
       if (error) {
+        console.error(`Error signing in with ${provider}:`, error.message)
         showMessage(`Error signing in with ${provider}: ${error.message}`, 'error')
       }
     } catch (error) {
+      console.error(`An error occurred with ${provider} login:`, error)
       showMessage(`An error occurred with ${provider} login.`, 'error')
-      console.error('Social login error:', error)
     }
   }
 

@@ -34,28 +34,18 @@ export default function DashboardPage() {
     const checkUser = async () => {
       try {
         const { data: { user: currentUser }, error } = await supabase.auth.getUser()
-        if (error) {
-          console.error('Error fetching user:', error)
+        if (error || !currentUser) {
           router.push('/login')
           return
         }
-        if (!currentUser) {
-          console.log('No user found, redirecting to login')
-          router.push('/login')
-          return
-        }
+
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('user_id', currentUser.id)
           .single()
-        if (profileError) {
-          console.error('Error fetching profile:', profileError)
-          router.push('/login')
-          return
-        }
-        if (profileData?.role !== 'admin') {
-          console.log('User does not have admin role, redirecting to login')
+
+        if (profileError || profileData?.role !== 'admin') {
           router.push('/login')
         }
       } catch (err) {
@@ -64,7 +54,7 @@ export default function DashboardPage() {
       }
     }
     checkUser()
-  }, [router, supabase])
+  }, [router])
 
   useEffect(() => {
     const loadIssues = async () => {
