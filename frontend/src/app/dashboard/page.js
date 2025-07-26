@@ -42,9 +42,7 @@ const supabase = createClientComponentClient()
 useEffect(() => {
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-    } else {
+    
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -54,7 +52,7 @@ useEffect(() => {
       if (profileError || profileData.role !== 'admin') {
         await supabase.auth.signOut()
         router.push('/login')
-      }
+      
     }
   }
   checkUser()
