@@ -108,18 +108,23 @@ export default function ComplaintsPage() {
           console.log('User display name:', issue.user_display_name)
         }
 
-        return {
-          internal_id: issue.id,
-          no: index + 1,
-          category: issue.category || issue.title,
-          title: issue.title,
-          description: issue.description || 'No description provided',
-          status: issue.status || 'Assessed',
-          date: issue.created_at ? new Date(issue.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          created_at: issue.created_at,
-          image: issue.image_urls,
-          image_url: issue.image_urls,
-        }
+return {
+  internal_id: issue.id,
+  no: index + 1,
+  category: issue.title,
+  title: issue.title,
+  description: issue.description || 'No description provided',
+  status: issue.status || 'Assessed',
+  date: issue.created_at ? new Date(issue.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+  created_at: issue.created_at,
+  image: issue.image_urls || [], // Keep the full array for potential future use
+  image_url: (issue.image_urls && 
+             Array.isArray(issue.image_urls) && 
+             issue.image_urls.length > 0 && 
+             issue.image_urls[0]?.trim()) ? issue.image_urls[0].trim() : null,
+  user: issue.user_display_name || issue.users?.username || 'Anonymous User'
+};
+
       })
 
       console.log('Transformed data:', transformedData)
