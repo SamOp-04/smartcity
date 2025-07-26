@@ -74,7 +74,7 @@ export default function LoginPage() {
 
   // Add auth state change listener to handle logout
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_OUT') {
         // Clear any cached data and redirect to login
         router.replace('/login')
