@@ -196,14 +196,13 @@ export default function LoginPage() {
           console.error('Profile insertion failed:', profileErr)
         }
 
-        if (data.user.email_confirmed_at) {
+        if (data.user) {
           showMessage('Admin account created successfully! Redirecting...', 'success')
           setTimeout(() => {
             router.push('/dashboard')
           }, 1500)
         } else {
           showMessage('Admin account created! Please check your email and click the confirmation link to complete your registration.', 'success')
-          setActiveTab('login')
         }
       }
     } catch (error) {
