@@ -45,16 +45,14 @@ export default function DashboardPage() {
           .eq('user_id', currentUser.id)
           .single()
 
-        if (profileError || profileData?.role !== 'admin') {
-          router.push('/login')
-        }
+        
       } catch (err) {
         console.error('Unexpected error in auth check:', err)
         router.push('/login')
       }
     }
     checkUser()
-  }, [router])
+  }, [router,supabase])
 
   useEffect(() => {
     const loadIssues = async () => {
