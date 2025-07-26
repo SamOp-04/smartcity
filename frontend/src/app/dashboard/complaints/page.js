@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import ComplaintFilter from './ComplaintFilter'
 import ComplaintRow from './ComplaintRow'
 import ComplaintDetailsModal from './ComplaintDetailsModal'
@@ -7,6 +9,8 @@ import { fetchIssues, updateIssueStatus } from '../../../lib/issueApi'
 import { ChartPieIcon } from '@heroicons/react/24/solid'
 
 export default function ComplaintsPage() {
+  const router = useRouter()
+  const supabase = createClientComponentClient()
   const [darkMode, setDarkMode] = useState(false)
   const [filters, setFilters] = useState({ search: '', category: '', status: '', startDate: '', endDate: '' })
   const [selectedComplaint, setSelectedComplaint] = useState(null)
@@ -16,30 +20,59 @@ export default function ComplaintsPage() {
   const [error, setError] = useState(null)
   const perPage = 10
 
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.replace('/login')
+        return
+      }
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+      if (error || profile?.role !== 'admin') {
+        await supabase.auth.signOut()
+        router.replace('/login')
+        return
+      }
+      setLoading(false)
+    }
+    checkUser()
+  }, [router, supabase])
+
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true'
+    setDarkMode(savedDarkMode)
+    const interval = setInterval(() => {
+      const newDarkMode = localStorage.getItem('darkMode') === 'true'
+      if (newDarkMode !== darkMode) {
+        setDarkMode(newDarkMode)
+      }
+    }, 200)
+    return () => clearInterval(interval)
+  }, [darkMode])
+
   const loadComplaints = async () => {
     try {
       setLoading(true)
       setError(null)
       const data = await fetchIssues()
-      
+
       console.log('Raw data from Supabase:', data)
       console.log('Data length:', data?.length)
-      
-      // Transform Supabase data to match existing component structure
+
       const transformedData = data.map((issue, index) => {
-        // Log the structure of the first issue to verify the data
         if (index === 0) {
           console.log('Sample issue:', issue)
           console.log('User data:', issue.users)
           console.log('User display name:', issue.user_display_name)
         }
-        
-        // Get user name from the API response (which already processed the user data)
-      
 
         return {
-          internal_id: issue.id, // Keep for internal operations only
-          no: index + 1, // Sequential number starting from 1
+          internal_id: issue.id,
+          no: index + 1,
           category: issue.category || issue.title,
           title: issue.title,
           description: issue.description || 'No description provided',
@@ -50,7 +83,7 @@ export default function ComplaintsPage() {
           image_url: issue.image_urls,
         }
       })
-      
+
       console.log('Transformed data:', transformedData)
       setComplaints(transformedData)
     } catch (err) {
@@ -62,33 +95,16 @@ export default function ComplaintsPage() {
   }
 
   useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true'
-    setDarkMode(savedDarkMode)
-
-    const interval = setInterval(() => {
-      const newDarkMode = localStorage.getItem('darkMode') === 'true'
-      if (newDarkMode !== darkMode) {
-        setDarkMode(newDarkMode)
-      }
-    }, 200)
-
-    return () => clearInterval(interval)
-  }, [darkMode])
-
-  // Load issues from Supabase
-  useEffect(() => {
-    loadComplaints()
-  }, [])
+    if (!loading) {
+      loadComplaints()
+    }
+  }, [loading])
 
   const handleStatusUpdate = async (internal_id, newStatus) => {
     try {
-      // Update in Supabase using internal_id
       await updateIssueStatus(internal_id, newStatus)
-      
-      // Update local state
       const updated = complaints.map(c => c.internal_id === internal_id ? { ...c, status: newStatus } : c)
       setComplaints(updated)
-
       if (selectedComplaint?.internal_id === internal_id) {
         setSelectedComplaint(prev => ({ ...prev, status: newStatus }))
       }
@@ -98,34 +114,30 @@ export default function ComplaintsPage() {
   }
 
   const filtered = complaints.filter((c) => {
-    const matchSearch = filters.search === '' || 
-      c.user.toLowerCase().includes(filters.search.toLowerCase()) || 
+    const matchSearch = filters.search === '' ||
       c.no.toString() === filters.search ||
       c.description.toLowerCase().includes(filters.search.toLowerCase())
-    
+
     const matchCategory = filters.category === '' || c.category === filters.category || c.title === filters.category
     const matchStatus = filters.status === '' || c.status === filters.status
     const matchStart = !filters.startDate || new Date(c.date) >= new Date(filters.startDate)
     const matchEnd = !filters.endDate || new Date(c.date) <= new Date(filters.endDate)
-    
+
     return matchSearch && matchCategory && matchStatus && matchStart && matchEnd
   })
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage)
   const totalPages = Math.ceil(filtered.length / perPage)
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1)
   }, [filters])
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className={`text-center ${darkMode ? 'text-slate-300' : 'text-gray-600'}`}>
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p>Loading complaints...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center text-gray-600">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p>Checking access...</p>
       </div>
     )
   }
@@ -135,7 +147,7 @@ export default function ComplaintsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className={`text-center ${darkMode ? 'text-slate-300' : 'text-gray-600'}`}>
           <p className="text-red-500 mb-4">{error}</p>
-          <button 
+          <button
             onClick={loadComplaints}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
           >
@@ -152,7 +164,7 @@ export default function ComplaintsPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className={`text-4xl font-bold mb-2 transition-colors duration-300 ${
-            darkMode 
+            darkMode
               ? 'bg-gradient-to-r from-slate-200 to-blue-400 bg-clip-text text-transparent'
               : 'bg-gradient-to-r from-slate-900 to-blue-800 bg-clip-text text-transparent'
           }`}>
@@ -164,7 +176,6 @@ export default function ComplaintsPage() {
             Monitor and manage your city&apos;s issues and services
           </p>
         </div>
-
         <div className="flex items-center gap-4">
           <div className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-sm font-medium ${
             darkMode ? 'bg-slate-800/50 text-slate-300 border border-slate-600' : 'bg-white text-gray-700 border border-gray-200'
@@ -172,12 +183,12 @@ export default function ComplaintsPage() {
             <ChartPieIcon className="h-5 w-5" />
             Total: {filtered.length}
           </div>
-          
+
           <button
             onClick={loadComplaints}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-sm font-medium transition-colors hover:scale-105 ${
-              darkMode 
-                ? 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600' 
+              darkMode
+                ? 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600'
                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
             }`}
           >
@@ -188,10 +199,8 @@ export default function ComplaintsPage() {
           </button>
         </div>
       </div>
-
       {/* Filters */}
       <ComplaintFilter filters={filters} setFilters={setFilters} darkMode={darkMode} />
-
       {/* Table */}
       <div className={`rounded-2xl shadow-xl overflow-hidden border transition-colors duration-300 ${
         darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-gray-200'
@@ -232,7 +241,6 @@ export default function ComplaintsPage() {
             </tbody>
           </table>
         </div>
-
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 p-4">
@@ -258,7 +266,7 @@ export default function ComplaintsPage() {
               } else {
                 pageNum = page - 2 + i
               }
-              
+
               return (
                 <button
                   key={pageNum}
@@ -289,7 +297,6 @@ export default function ComplaintsPage() {
           </div>
         )}
       </div>
-
       {/* Modal */}
       {selectedComplaint && (
         <ComplaintDetailsModal

@@ -43,7 +43,7 @@ export default function LoginPage() {
             .single()
 
           if (!profileError && profileData && profileData.role === 'admin') {
-            router.push('/dashboard')
+            router.replace('/dashboard')
           } else {
             // User exists but doesn't have admin role, sign them out
             await supabase.auth.signOut()
