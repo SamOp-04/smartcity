@@ -3,50 +3,116 @@ import { useContext, useState, useEffect } from 'react'
 import StatsCard from '../components/StatsCard'
 import CategoryPieChart from '../components/CategoryPieChart'
 import RecentComplaintTable from '../components/RecentComplaintTable'
-
-const allComplaints = [
-  { id: 1, user: 'Amit Kumar', category: 'Road', status: 'Pending', date: '2025-07-01' },
-  { id: 2, user: 'Sara Jain', category: 'Water', status: 'Resolved', date: '2025-07-02' },
-  { id: 3, user: 'Maya R', category: 'Electricity', status: 'In Progress', date: '2025-07-03' },
-  { id: 4, user: 'Dev Patel', category: 'Garbage', status: 'Pending', date: '2025-07-04' },
-  { id: 5, user: 'Lisa Ray', category: 'Water', status: 'Resolved', date: '2025-07-05' },
-  { id: 6, user: 'Raj Singh', category: 'Road', status: 'In Progress', date: '2025-07-06' },
-  { id: 7, user: 'Neha Joshi', category: 'Sanitation', status: 'Pending', date: '2025-07-07' },
-  { id: 8, user: 'Vikram Verma', category: 'Electricity', status: 'Resolved', date: '2025-07-08' }
-]
+import { fetchIssues } from '../../lib/issueApi'
 
 export default function DashboardPage() {
+  const [hasMounted, setHasMounted] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
+  const [issues, setIssues] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
+  // First useEffect - for dark mode and mounting
   useEffect(() => {
+    setHasMounted(true)
     const savedDarkMode = localStorage.getItem('darkMode') === 'true'
     setDarkMode(savedDarkMode)
-    
-    // Listen for dark mode changes
+
     const handleStorageChange = () => {
       const newDarkMode = localStorage.getItem('darkMode') === 'true'
       setDarkMode(newDarkMode)
     }
-    
+
     window.addEventListener('storage', handleStorageChange)
-    
-    // Also check periodically for changes within the same tab
+
     const interval = setInterval(() => {
       const newDarkMode = localStorage.getItem('darkMode') === 'true'
-      if (newDarkMode !== darkMode) {
-        setDarkMode(newDarkMode)
-      }
+      if (newDarkMode !== darkMode) setDarkMode(newDarkMode)
     }, 100)
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       clearInterval(interval)
     }
   }, [darkMode])
 
-  const resolved = allComplaints.filter(c => c.status === 'Resolved').length
-  const inProgress = allComplaints.filter(c => c.status === 'In Progress').length
-  const pending = allComplaints.filter(c => c.status === 'Pending').length
+  // Second useEffect - for fetching issues
+  useEffect(() => {
+    const loadIssues = async () => {
+      try {
+        setLoading(true)
+        const data = await fetchIssues()
+        setIssues(data || [])
+        setError(null)
+      } catch (err) {
+        console.error('Failed to fetch issues:', err)
+        setError('Failed to load issues. Please try again.')
+        setIssues([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadIssues()
+  }, [])
+
+  // Early return AFTER all hooks
+  if (!hasMounted) return null 
+
+  // Calculate stats from real data - ensure they're always numbers
+  const resolved = issues?.filter(issue => issue.status === 'Resolved')?.length || 0
+  const inProgress = issues?.filter(issue => issue.status === 'In Progress')?.length || 0
+  const assessed = issues?.filter(issue => issue.status === 'Assessed')?.length || 0
+
+  // Transform issues data to match expected format for components
+  const transformedIssues = issues?.map(issue => ({
+    id: issue.id,
+    user: issue.user_name || issue.user_email || issue.created_by || 'Unknown User',
+    category: issue.category || 'Uncategorized',
+    status: issue.status || 'Assessed',
+    date: issue.created_at ? new Date(issue.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    title: issue.title || 'No Title',
+    description: issue.description || '',
+    priority: issue.priority || 'Medium',
+    assigned_to: issue.assigned_to || null,
+    resolved_at: issue.resolved_at || null,
+    // Add any other fields your components might need
+    ...issue
+  })) || []
+
+  // Handle loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen p-4 sm:p-6 flex items-center justify-center">
+        <div className={`text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading dashboard data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <div className="min-h-screen p-4 sm:p-6 flex items-center justify-center">
+        <div className={`text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+          <div className="mb-4">
+            <svg className="w-12 h-12 text-red-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-red-500 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen p-4 sm:p-6">
@@ -66,19 +132,33 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Pass real data */}
       <div className="mb-8">
-        <StatsCard resolved={resolved} inProgress={inProgress} pending={pending} />
+        <StatsCard resolved={resolved} inProgress={inProgress} assessed={assessed} />
       </div>
 
-      {/* Category Pie Chart - Full Width Card */}
+      {/* Category Pie Chart - Pass real issues data */}
       <div className="mb-8">
-        <CategoryPieChart />
+        <CategoryPieChart issues={transformedIssues} />
       </div>
 
-      {/* Recent Complaints Table - Full Width Card */}
+      {/* Recent Complaints Table - Pass real data with update handler */}
       <div>
-        <RecentComplaintTable complaints={allComplaints} />
+        <RecentComplaintTable 
+          complaints={transformedIssues} 
+          onStatusUpdate={async (id, status) => {
+            try {
+              const { updateIssueStatus } = await import('../../lib/issueApi')
+              await updateIssueStatus(id, status)
+              // Refresh the issues list
+              const updatedIssues = await fetchIssues()
+              setIssues(updatedIssues || [])
+            } catch (err) {
+              console.error('Failed to update issue status:', err)
+              setError('Failed to update issue status')
+            }
+          }}
+        />
       </div>
     </div>
   )

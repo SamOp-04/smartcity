@@ -1,6 +1,6 @@
 import { User, Eye, Lock, Unlock } from 'lucide-react'
 
-// New status style mapping
+// Status style mapping
 const statusConfig = {
   Active: {
     light: 'text-emerald-600 bg-emerald-50 border-emerald-200',
@@ -16,22 +16,34 @@ export default function UserRow({ user, onView, darkMode }) {
   const statusStyle = statusConfig[user.status]?.[darkMode ? 'dark' : 'light'] ||
                       (darkMode ? 'text-slate-400 bg-slate-700 border-slate-600' : 'text-gray-600 bg-gray-50 border-gray-200')
 
+  // Generate initials for avatar
+  const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
   return (
     <tr className={`border-b transition-all duration-300 hover:scale-[1.01] hover:shadow-md ${
       darkMode ? 'border-slate-700 hover:bg-slate-700/30' : 'border-gray-200 hover:bg-blue-50'
     }`}>
       {/* ID */}
-      <td className={`px-4 py-4 ${darkMode ? 'text-slate-300' : 'text-gray-900'}`}>
-        #{user.id}
+      <td className={`px-4 py-4 font-mono ${darkMode ? 'text-slate-300' : 'text-gray-900'}`}>
+        #{user.id.slice(0, 8)}
       </td>
 
       {/* User Name and Role */}
       <td className="px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-            darkMode ? 'bg-slate-700' : 'bg-gray-100'
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${
+            darkMode ? 'bg-slate-700 text-slate-300' : 'bg-gray-100 text-gray-600'
           }`}>
-            <User className={`h-5 w-5 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`} />
+            {user.name && user.name !== 'Unknown User' ? getInitials(user.name) : (
+              <User className={`h-5 w-5 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`} />
+            )}
           </div>
           <div>
             <p className={`${darkMode ? 'text-slate-200' : 'text-gray-900'} font-medium`}>
@@ -46,10 +58,12 @@ export default function UserRow({ user, onView, darkMode }) {
 
       {/* Email */}
       <td className={`${darkMode ? 'text-slate-300' : 'text-gray-600'} px-4 py-4`}>
-        {user.email}
+        <div className="max-w-xs truncate" title={user.email}>
+          {user.email}
+        </div>
       </td>
 
-      {/* Status - NEW STYLE */}
+      {/* Status */}
       <td className="px-4 py-4">
         <span className={`px-3 py-1 rounded-full text-xs font-medium border transition-all duration-200 ${statusStyle}`}>
           {user.status}
@@ -72,11 +86,14 @@ export default function UserRow({ user, onView, darkMode }) {
           </button>
 
           {/* Lock / Unlock Icon */}
-          <div className={`p-2 rounded-lg ${
-            user.status === 'Active'
-              ? darkMode ? 'bg-green-600/20 text-green-400' : 'bg-green-100 text-green-600'
-              : darkMode ? 'bg-red-600/20 text-red-400' : 'bg-red-100 text-red-600'
-          }`}>
+          <div 
+            className={`p-2 rounded-lg ${
+              user.status === 'Active'
+                ? darkMode ? 'bg-green-600/20 text-green-400' : 'bg-green-100 text-green-600'
+                : darkMode ? 'bg-red-600/20 text-red-400' : 'bg-red-100 text-red-600'
+            }`}
+            title={user.status === 'Active' ? 'User is Active' : 'User is Blocked'}
+          >
             {user.status === 'Active' ? (
               <Unlock className="h-4 w-4" />
             ) : (

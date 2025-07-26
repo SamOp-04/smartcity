@@ -12,11 +12,11 @@ import {
 
 const statusIcons = {
   'Resolved': <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />,
-  'Pending': <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500 mr-1" />,
+  'Assessed': <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500 mr-1" />,
   'In Progress': <ClockIcon className="w-5 h-5 text-blue-500 mr-1" />
 }
 
-const statusOptions = ['Pending', 'In Progress', 'Resolved']
+const statusOptions = ['Assessed', 'In Progress', 'Resolved']
 
 export default function ComplaintDetailsModal({ complaint, onClose, onStatusUpdate, darkMode }) {
   if (!complaint) return null
@@ -25,7 +25,8 @@ export default function ComplaintDetailsModal({ complaint, onClose, onStatusUpda
   const [message, setMessage] = useState('')
 
   const handleSave = () => {
-    onStatusUpdate(complaint.id, status)
+    // Use internal_id instead of id
+    onStatusUpdate(complaint.internal_id, status)
     setMessage('Status updated successfully!')
     setTimeout(() => {
       setMessage('')
@@ -34,8 +35,7 @@ export default function ComplaintDetailsModal({ complaint, onClose, onStatusUpda
   }
 
   return (
- <div className="fixed inset-0 z-50 flex items-start justify-center pt-[80px] overflow-y-auto backdrop-blur-sm bg-black/40">
-
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[80px] overflow-y-auto backdrop-blur-sm bg-black/40">
       <div className={`rounded-2xl shadow-2xl p-6 w-[90%] max-w-lg relative transition-colors duration-300 ${
         darkMode 
           ? 'bg-slate-800/90 border border-slate-700 text-slate-200' 
@@ -58,30 +58,26 @@ export default function ComplaintDetailsModal({ complaint, onClose, onStatusUpda
           <h2 className={`text-2xl font-bold mb-2 transition-colors duration-300 ${
             darkMode ? 'text-white' : 'text-gray-900'
           }`}>
-            Complaint #{complaint.id}
+            Issue #{complaint.no}
           </h2>
           <p className={`text-sm transition-colors duration-300 ${
             darkMode ? 'text-slate-400' : 'text-gray-500'
           }`}>
-            {complaint.date}
+            {new Date(complaint.created_at || complaint.date).toLocaleDateString()}
           </p>
         </div>
 
-        {/* Complaint Details */}
+        {/* Issue Details */}
         <div className="space-y-4 text-[15px] leading-relaxed mb-6">
           <div className="flex items-center">
             <UserIcon className={`h-5 w-5 mr-3 ${
               darkMode ? 'text-purple-400' : 'text-purple-600'
             }`} />
-            <span className={`font-semibold transition-colors duration-300 ${
-              darkMode ? 'text-slate-300' : 'text-gray-700'
-            }`}>
-              User:
-            </span>
+            
             <span className={`ml-2 transition-colors duration-300 ${
               darkMode ? 'text-slate-200' : 'text-gray-800'
             }`}>
-              {complaint.user}
+              {complaint.user || complaint.user_name}
             </span>
           </div>
 
@@ -92,14 +88,14 @@ export default function ComplaintDetailsModal({ complaint, onClose, onStatusUpda
             <span className={`font-semibold transition-colors duration-300 ${
               darkMode ? 'text-slate-300' : 'text-gray-700'
             }`}>
-              Category:
+              Title:
             </span>
             <span className={`ml-2 px-2 py-1 rounded-lg text-sm font-medium transition-colors duration-300 ${
               darkMode 
                 ? 'bg-slate-700 text-slate-200 border border-slate-600' 
                 : 'bg-gray-100 text-gray-700 border border-gray-200'
             }`}>
-              {complaint.category}
+              {complaint.title}
             </span>
           </div>
 
@@ -146,22 +142,24 @@ export default function ComplaintDetailsModal({ complaint, onClose, onStatusUpda
         </div>
 
         {/* Image */}
-        <div className="mb-6">
-          <h3 className={`text-sm font-semibold mb-3 transition-colors duration-300 ${
-            darkMode ? 'text-slate-300' : 'text-gray-700'
-          }`}>
-            Attachment
-          </h3>
-          <div className={`rounded-xl overflow-hidden border transition-colors duration-300 ${
-            darkMode ? 'border-slate-600' : 'border-gray-200'
-          } shadow-lg`}>
-            <img
-              src={complaint.image || '/example.jpg'}
-              alt="Complaint Image"
-              className="w-full h-48 object-cover"
-            />
+        {(complaint.image || complaint.image_url) && (
+          <div className="mb-6">
+            <h3 className={`text-sm font-semibold mb-3 transition-colors duration-300 ${
+              darkMode ? 'text-slate-300' : 'text-gray-700'
+            }`}>
+              Attachment
+            </h3>
+            <div className={`rounded-xl overflow-hidden border transition-colors duration-300 ${
+              darkMode ? 'border-slate-600' : 'border-gray-200'
+            } shadow-lg`}>
+              <img
+                src={complaint.image || complaint.image_url || '/example.jpg'}
+                alt="Issue Image"
+                className="w-full h-48 object-cover"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Save Button */}
         <button

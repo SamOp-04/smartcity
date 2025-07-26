@@ -45,18 +45,18 @@ function ModernCircularProgress({ percent, color, strokeWidth = 8 }) {
   )
 }
 
-export default function StatsCard({ resolved, inProgress, pending }) {
-  const total = resolved + inProgress + pending
+export default function StatsCard({ resolved, inProgress, assessed }) {
+  const total = resolved + inProgress + assessed
   const resolvedPercent = total ? Math.round((resolved / total) * 100) : 0
   const inProgressPercent = total ? Math.round((inProgress / total) * 100) : 0
-  const pendingPercent = total ? Math.round((pending / total) * 100) : 0
+  const assessedPercent = total ? Math.round((assessed / total) * 100) : 0
 
   const cards = [
     {
       title: 'Total Complaints',
       value: total,
       icon: ClipboardDocumentListIcon,
-      gradient: 'from-slate-1500 to-slate-1600',
+      gradient: 'from-slate-500 to-slate-600',
       bgGradient: 'from-slate-50 to-slate-100',
       textColor: 'text-slate-700',
       showProgress: false
@@ -65,7 +65,7 @@ export default function StatsCard({ resolved, inProgress, pending }) {
       title: 'Resolved',
       value: resolved,
       icon: CheckCircleIcon,
-      gradient: 'from-emerald-1500 to-emerald-1000',
+      gradient: 'from-emerald-500 to-emerald-600',
       bgGradient: 'from-emerald-50 to-emerald-100',
       textColor: 'text-emerald-700',
       progress: resolvedPercent,
@@ -76,7 +76,7 @@ export default function StatsCard({ resolved, inProgress, pending }) {
       title: 'In Progress',
       value: inProgress,
       icon: ClockIcon,
-      gradient: 'from-blue-1500 to-blue-1000',
+      gradient: 'from-blue-500 to-blue-600',
       bgGradient: 'from-blue-50 to-blue-100',
       textColor: 'text-blue-700',
       progress: inProgressPercent,
@@ -84,13 +84,13 @@ export default function StatsCard({ resolved, inProgress, pending }) {
       showProgress: true
     },
     {
-      title: 'Pending',
-      value: pending,
+      title: 'Assessed',
+      value: assessed,
       icon: ExclamationTriangleIcon,
-      gradient: 'from-amber-1100 to-amber-800',
+      gradient: 'from-amber-500 to-amber-600',
       bgGradient: 'from-amber-50 to-amber-100',
       textColor: 'text-amber-700',
-      progress: pendingPercent,
+      progress: assessedPercent,
       progressColor: '#f59e0b',
       showProgress: true
     }

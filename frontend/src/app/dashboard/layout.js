@@ -8,10 +8,13 @@ export default function DashboardLayout({ children }) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
-    // Note: localStorage usage removed for Claude.ai compatibility
-    // In a real application, you'd check authentication state here
+    // Mark as client-side
+    setIsClient(true)
+    
+    // Check authentication state
     const loggedIn = localStorage.getItem('loggedIn')
     if (!loggedIn) {
       router.push('/login')
@@ -26,6 +29,33 @@ export default function DashboardLayout({ children }) {
     const newDarkMode = !darkMode
     setDarkMode(newDarkMode)
     localStorage.setItem('darkMode', newDarkMode.toString())
+  }
+
+  // Prevent hydration mismatch by not rendering until client-side
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="fixed top-0 left-0 right-0 h-16 bg-white/90 border-b border-slate-200 flex items-center px-4">
+          <div className="flex items-center ml-4">
+            <div className="relative">
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="w-20 h-20 object-contain"
+              />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-slate-800">
+              SmartCity360
+            </span>
+          </div>
+        </div>
+        <main className="flex-1 w-full min-h-screen pt-16 ml-16">
+          <div className="p-4 sm:p-6 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -54,13 +84,13 @@ export default function DashboardLayout({ children }) {
 
         {/* Logo */}
         <div className="flex items-center ml-4">
-         <div className="relative">
-  <img
-    src="/logo.png"
-    alt="Logo"
-    className="w-20 h20 object-contain"
-  />
-</div>
+          <div className="relative">
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="w-20 h-20 object-contain"
+            />
+          </div>
           <span className={`text-xl font-bold tracking-tight transition-colors duration-300 ${
             darkMode ? 'text-white' : 'text-slate-800'
           }`}>
