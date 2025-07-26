@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { User, Mail, Phone, Camera, Loader2 } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-
+import Image from 'next/image'
 export default function ProfilePage() {
   const [darkMode, setDarkMode] = useState(false)
   const [user, setUser] = useState(null)
@@ -171,11 +171,13 @@ export default function ProfilePage() {
                 darkMode ? 'bg-slate-700 border-slate-800' : 'bg-gray-100 border-white'
               }`}>
                 {userData.avatar_url ? (
-                  <img 
-                    src={userData.avatar_url} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
-                  />
+                 <Image
+  src={userData.avatar_url || '/default-avatar.png'}  // fallback optional
+  alt="Profile"
+  width={100}     // Set appropriate pixel dimensions
+  height={100}
+  className="w-full h-full object-cover"
+/>
                 ) : (
                   <User className={`h-12 w-12 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`} />
                 )}

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bars3Icon } from '@heroicons/react/24/outline'
 import Sidebar from '../components/Sidebar'
-
+import Image from 'next/image'
 export default function DashboardLayout({ children }) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -38,11 +38,15 @@ export default function DashboardLayout({ children }) {
         <div className="fixed top-0 left-0 right-0 h-16 bg-white/90 border-b border-slate-200 flex items-center px-4">
           <div className="flex items-center ml-4">
             <div className="relative">
-              <img
-                src="/logo.png"
-                alt="Logo"
-                className="w-20 h-20 object-contain"
-              />
+
+<Image
+  src="/logo.png"
+  alt="Logo"
+  width={80}        // w-20 = 80px
+  height={80}       // h-20 = 80px
+  className="object-contain"
+/>
+
             </div>
             <span className="text-xl font-bold tracking-tight text-slate-800">
               SmartCity360
@@ -85,11 +89,14 @@ export default function DashboardLayout({ children }) {
         {/* Logo */}
         <div className="flex items-center ml-4">
           <div className="relative">
-            <img
-              src="/logo.png"
-              alt="Logo"
-              className="w-20 h-20 object-contain"
-            />
+<Image
+  src="/logo.png"
+  alt="Logo"
+  width={80}              // Required: actual width in pixels
+  height={80}             // Required: actual height in pixels
+  className="object-contain w-20 h-20"  // Optional styling
+/>
+
           </div>
           <span className={`text-xl font-bold tracking-tight transition-colors duration-300 ${
             darkMode ? 'text-white' : 'text-slate-800'

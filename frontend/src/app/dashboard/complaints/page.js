@@ -161,7 +161,7 @@ export default function ComplaintsPage() {
           <p className={`transition-colors duration-300 ${
             darkMode ? 'text-slate-300' : 'text-slate-600'
           }`}>
-            Monitor and manage your city's issues and services
+            Monitor and manage your city&apos;s issues and services
           </p>
         </div>
 

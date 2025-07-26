@@ -9,7 +9,7 @@ import {
   ExclamationTriangleIcon,
   DocumentTextIcon
 } from '@heroicons/react/24/outline'
-
+import Image from 'next/image'
 const statusIcons = {
   'Resolved': <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />,
   'Assessed': <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500 mr-1" />,
@@ -19,13 +19,13 @@ const statusIcons = {
 const statusOptions = ['Assessed', 'In Progress', 'Resolved']
 
 export default function ComplaintDetailsModal({ complaint, onClose, onStatusUpdate, darkMode }) {
-  if (!complaint) return null
-
-  const [status, setStatus] = useState(complaint.status)
+  // ✅ Move hooks to the top, default safely if complaint is null
+  const [status, setStatus] = useState(complaint?.status || '')
   const [message, setMessage] = useState('')
 
+  if (!complaint) return null
+
   const handleSave = () => {
-    // Use internal_id instead of id
     onStatusUpdate(complaint.internal_id, status)
     setMessage('Status updated successfully!')
     setTimeout(() => {
@@ -152,11 +152,14 @@ export default function ComplaintDetailsModal({ complaint, onClose, onStatusUpda
             <div className={`rounded-xl overflow-hidden border transition-colors duration-300 ${
               darkMode ? 'border-slate-600' : 'border-gray-200'
             } shadow-lg`}>
-              <img
-                src={complaint.image || complaint.image_url || '/example.jpg'}
-                alt="Issue Image"
-                className="w-full h-48 object-cover"
-              />
+              <Image
+  src={complaint.image || complaint.image_url || '/example.jpg'}
+  alt="Issue Image"
+  width={600} // or desired width
+  height={300} // or desired height
+  className="w-full h-48 object-cover"
+  unoptimized // optional: disable optimization for dynamic URLs if needed
+/>
             </div>
           </div>
         )}

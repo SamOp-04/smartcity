@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   PieChart, Pie, Cell, Tooltip, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer
@@ -21,33 +21,8 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Load real data from Supabase
-  const loadReportsData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const data = await fetchIssues()
-      
-      // Transform the data to match the expected format
-      const transformedData = data.map(issue => ({
-        id: issue.id,
-        status: issue.status || 'Assessed', // Default to Assessed if no status
-        date: issue.created_at ? new Date(issue.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        category: issue.category || issue.title || 'Other'
-      }))
-      
-      setComplaintData(transformedData)
-      generateTrendData(transformedData)
-    } catch (err) {
-      console.error('Error loading reports data:', err)
-      setError('Failed to load reports data. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   // Generate trend data from real complaints
-  const generateTrendData = (data) => {
+  const generateTrendData = useCallback((data) => {
     // Daily data - last 7 days
     const dateMap = {}
     data.forEach((c) => {
@@ -103,7 +78,33 @@ export default function ReportsPage() {
       }))
 
     setMonthly(monthlyData)
-  }
+  }, [])
+
+  // Load real data from Supabase
+  const loadReportsData = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await fetchIssues()
+      
+      const transformedData = data.map(issue => ({
+        id: issue.id,
+        status: issue.status || 'Assessed',
+        date: issue.created_at
+          ? new Date(issue.created_at).toLocaleDateString('en-CA')
+          : new Date().toLocaleDateString('en-CA'),
+        category: issue.category || issue.title || 'Other'
+      }))
+      
+      setComplaintData(transformedData)
+      generateTrendData(transformedData)
+    } catch (err) {
+      console.error('Error loading reports data:', err)
+      setError('Failed to load reports data. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [generateTrendData])
 
   useEffect(() => {
     const savedDarkMode = localStorage.getItem('darkMode') === 'true'
@@ -118,7 +119,7 @@ export default function ReportsPage() {
   // Load data on component mount
   useEffect(() => {
     loadReportsData()
-  }, [])
+  }, [loadReportsData])
 
   const statusCount = complaintData.reduce((acc, curr) => {
     acc[curr.status] = (acc[curr.status] || 0) + 1

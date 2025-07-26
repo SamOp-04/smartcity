@@ -12,11 +12,11 @@ import {
   ExclamationCircleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState('login')
   const [showPassword, setShowPassword] = useState(false)
-  const [typing, setTyping] = useState(false)
   const [passwordTimeout, setPasswordTimeout] = useState(null)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -60,13 +60,11 @@ export default function LoginPage() {
   const handlePasswordChange = (e) => {
     setPassword(e.target.value)
     setShowPassword(true)
-    setTyping(true)
 
     if (passwordTimeout) clearTimeout(passwordTimeout)
 
     const timeout = setTimeout(() => {
       setShowPassword(false)
-      setTyping(false)
     }, 1000)
 
     setPasswordTimeout(timeout)
@@ -159,6 +157,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       showMessage('An unexpected error occurred. Please try again.', 'error')
+      console.error('Login error:', error)
     }
   }
 
@@ -184,29 +183,30 @@ export default function LoginPage() {
       }
 
       try {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert({ 
-        user_id: data.user.id,
-        full_name: fullName,
-        role: 'admin',
-        email: email // if your profiles table has an email field
-      }, {
-        onConflict: 'user_id' // This ensures we update if profile already exists
-      });
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({ 
+            user_id: data.user.id,
+            full_name: fullName,
+            role: 'admin',
+            email: email // if your profiles table has an email field
+          }, {
+            onConflict: 'user_id' // This ensures we update if profile already exists
+          })
 
-    if (profileError) {
-      console.error('Profile creation error:', profileError);
-      showMessage('Account created but profile setup failed. Please contact support.', 'error');
-      return;
-    }
-  } catch (profileErr) {
-    console.error('Profile insertion failed:', profileErr);
-    showMessage('Account created but profile setup failed. Please contact support.', 'error');
-    return;
-  }
+        if (profileError) {
+          console.error('Profile creation error:', profileError)
+          showMessage('Account created but profile setup failed. Please contact support.', 'error')
+          return
+        }
+      } catch (profileErr) {
+        console.error('Profile insertion failed:', profileErr)
+        showMessage('Account created but profile setup failed. Please contact support.', 'error')
+        return
+      }
     } catch (error) {
       showMessage('An unexpected error occurred. Please try again.', 'error')
+      console.error('Signup error:', error)
     }
   }
 
@@ -231,7 +231,7 @@ export default function LoginPage() {
 
   const handleSocialLogin = async (provider) => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback`
@@ -240,9 +240,11 @@ export default function LoginPage() {
 
       if (error) {
         showMessage(`Error signing in with ${provider}: ${error.message}`, 'error')
+        console.error('Social login error:', error)
       }
-    } catch (error) {
+    } catch (err) {
       showMessage(`An error occurred with ${provider} login.`, 'error')
+      console.error('Social login error:', err)
     }
   }
 
@@ -250,7 +252,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center px-4 py-4">
       {/* Logo and Name */}
       <div className="flex items-center justify-center -mt-10">
-        <img src="/logo.png" alt="SmartCity360 Logo" className="w-25 h-25 -mt-6" />
+        <Image src="/logo.png" alt="SmartCity360 Logo" width={100} height={100} className="w-25 h-25 -mt-6" />
         <span className="text-2xl font-bold text-blue-600 -ml-2 -mt-6">SmartCity360</span>
       </div>
 
@@ -410,7 +412,13 @@ export default function LoginPage() {
             onClick={() => handleSocialLogin('google')}
             disabled={loading}
           >
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5 mr-2" />
+            <Image
+              src="https://www.svgrepo.com/show/475656/google-color.svg"
+              alt="Google"
+              width={20}
+              height={20}
+              className="w-5 h-5 mr-2"
+            />
             Google
           </button>
           <button 
@@ -418,7 +426,13 @@ export default function LoginPage() {
             onClick={() => handleSocialLogin('facebook')}
             disabled={loading}
           >
-            <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook" className="w-5 h-5 mr-2" />
+            <Image
+              src="https://www.svgrepo.com/show/475647/facebook-color.svg"
+              alt="Facebook"
+              width={20}
+              height={20}
+              className="w-5 h-5 mr-2"
+            />
             Facebook
           </button>
         </div>

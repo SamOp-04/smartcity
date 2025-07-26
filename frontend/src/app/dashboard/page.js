@@ -1,5 +1,5 @@
 'use client'
-import { useContext, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import StatsCard from '../components/StatsCard'
 import CategoryPieChart from '../components/CategoryPieChart'
 import RecentComplaintTable from '../components/RecentComplaintTable'
@@ -128,7 +128,7 @@ export default function DashboardPage() {
         <p className={`transition-colors duration-300 ${
           darkMode ? 'text-slate-300' : 'text-slate-600'
         }`}>
-          Monitor and manage your city's complaints and services
+          Monitor and manage your city&apos;s complaints and services
         </p>
       </div>
 

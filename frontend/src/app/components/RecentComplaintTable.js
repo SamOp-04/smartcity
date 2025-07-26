@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
 const statusConfig = {
   Resolved: {
@@ -36,101 +36,6 @@ const categoryColors = {
   Garbage: { light: 'bg-red-100/70 text-red-700', dark: 'bg-red-900/30 text-red-400' },
   Sanitation: { light: 'bg-green-100/70 text-green-700', dark: 'bg-green-900/30 text-green-400' },
   Uncategorized: { light: 'bg-gray-100/70 text-gray-700', dark: 'bg-gray-900/30 text-gray-400' }
-}
-
-function StatusDropdown({ currentStatus, complaintId, onStatusUpdate, darkMode }) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isUpdating, setIsUpdating] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState('below')
-
-  const statuses = ['Assessed', 'In Progress', 'Resolved']
-
-  const handleToggleDropdown = (e) => {
-    if (!isOpen) {
-      // Calculate position when opening
-      const buttonRect = e.currentTarget.getBoundingClientRect()
-      const viewportHeight = window.innerHeight
-      const dropdownHeight = 130 // Height for 3 menu items
-      const spaceBelow = viewportHeight - buttonRect.bottom - 20 // Add buffer
-      
-      // Position above if not enough space below
-      setDropdownPosition(spaceBelow < dropdownHeight ? 'above' : 'below')
-    }
-    setIsOpen(!isOpen)
-  }
-  const handleStatusChange = async (newStatus) => {
-    if (newStatus !== currentStatus && onStatusUpdate) {
-      setIsUpdating(true)
-      try {
-        await onStatusUpdate(complaintId, newStatus)
-      } catch (error) {
-        console.error('Failed to update status:', error)
-      } finally {
-        setIsUpdating(false)
-        setIsOpen(false)
-      }
-    } else {
-      setIsOpen(false)
-    }
-  }
-
-  const currentStatusConfig = statusConfig[currentStatus] || statusConfig.Assessed
-
-  return (
-    <div className="relative inline-block">
-      <button
-        onClick={handleToggleDropdown}
-        disabled={isUpdating}
-        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md disabled:opacity-50 ${
-          darkMode ? currentStatusConfig.darkBg : currentStatusConfig.bg
-        }`}
-      >
-        <span className={`w-2.5 h-2.5 rounded-full ${
-          darkMode ? currentStatusConfig.darkDot : currentStatusConfig.dot
-        }`}></span>
-        <span className={darkMode ? currentStatusConfig.darkColor : currentStatusConfig.color}>
-          {isUpdating ? 'Updating...' : currentStatus}
-        </span>
-        <ChevronDownIcon className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-
-      {isOpen && (
-        <>
-          <div 
-            className="fixed inset-0 z-10" 
-            onClick={() => setIsOpen(false)}
-          />
-          <div className={`absolute left-0 w-32 rounded-md shadow-lg z-20 border ${
-            dropdownPosition === 'above' 
-              ? 'bottom-full mb-2' 
-              : 'top-full mt-2'
-          } ${
-            darkMode 
-              ? 'bg-slate-800 border-slate-700' 
-              : 'bg-white border-slate-200'
-          }`}>
-            {statuses.map((status) => (
-              <button
-                key={status}
-                onClick={() => handleStatusChange(status)}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-opacity-75 transition-colors first:rounded-t-md last:rounded-b-md ${
-                  status === currentStatus
-                    ? darkMode
-                      ? 'bg-slate-700 text-slate-200'
-                      : 'bg-slate-100 text-slate-800'
-                    : darkMode
-                      ? 'text-slate-300 hover:bg-slate-700'
-                      : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                {status}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
 }
 export default function RecentComplaintTable({ complaints = [] }) {
   const [page, setPage] = useState(1)
