@@ -12,10 +12,11 @@ import {
   ExclamationCircleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
-import Image from 'next/image'
+
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState('login')
   const [showPassword, setShowPassword] = useState(false)
+  const [typing, setTyping] = useState(false)
   const [passwordTimeout, setPasswordTimeout] = useState(null)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -101,149 +102,126 @@ export default function LoginPage() {
     }, 5000)
   }
 
-  // Replace your useEffect in the login page with this improved version
-useEffect(() => {
-  const checkUser = async () => {
+  const handleLogin = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        // No user logged in, stay on login page
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          showMessage('Invalid email or password. Please try again.', 'error')
+        } else if (error.message.includes('Email not confirmed')) {
+          showMessage('Please check your email and click the confirmation link.', 'error')
+        } else {
+          showMessage(error.message, 'error')
+        }
         return
       }
 
-      // User is logged in, check their profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, username')
-        .eq('user_id', user.id)
-        .single()
+      if (data.user) {
+        // Check user role in profiles table
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('role, username')
+            .eq('user_id', data.user.id)
+            .single()
 
-      if (profileError || !profileData) {
-        console.error('Profile check error:', profileError)
-        // Profile doesn't exist or error occurred
-        // Don't automatically sign out - let them try to create profile
-        console.log('User has no profile, staying on login page')
-        return
-      }
+          if (profileError) {
+            console.error('Profile fetch error:', profileError)
+            showMessage('Account profile not found. Please contact support.', 'error')
+            // Sign out the user since they don't have a valid profile
+            await supabase.auth.signOut()
+            return
+          }
 
-      if (profileData.role === 'admin') {
-        // User has admin role, redirect to dashboard
-        console.log('Admin user detected, redirecting to dashboard')
-        router.push('/dashboard')
-      } else {
-        // User exists but doesn't have admin role
-        console.log('User does not have admin role, signing out')
-        await supabase.auth.signOut()
-        showMessage('Access denied. This application is restricted to administrators only.', 'error')
+          if (!profileData || profileData.role !== 'admin') {
+            showMessage('Access denied. This application is restricted to administrators only.', 'error')
+            // Sign out the user since they don't have admin access
+            await supabase.auth.signOut()
+            return
+          }
+
+          // If we reach here, user is authenticated and has admin role
+          showMessage(`Welcome back, ${profileData.username || 'Admin'}! Redirecting...`, 'success')
+          setTimeout(() => {
+            router.push('/dashboard')
+          }, 1500)
+
+        } catch (profileErr) {
+          console.error('Profile check failed:', profileErr)
+          showMessage('Unable to verify account permissions. Please try again.', 'error')
+          await supabase.auth.signOut()
+          return
+        }
       }
     } catch (error) {
-      console.error('Auth check error:', error)
-      // Don't sign out on error, just log it
+      showMessage('An unexpected error occurred. Please try again.', 'error')
     }
   }
-
-  checkUser()
-}, [router, supabase]) // Remove showMessage from dependencies to avoid loops
 
   const handleSignup = async () => {
-  try {
-    // Validate required fields
-    if (!fullName.trim()) {
-      showMessage('Full name is required', 'error');
-      return;
-    }
-    
-    if (!email.trim()) {
-      showMessage('Email is required', 'error');
-      return;
-    }
-
-    console.log('Attempting signup with:', { fullName: fullName.trim(), email: email.trim() });
-
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        data: {
-          username: fullName.trim(),
-          full_name: fullName.trim(), // Additional fallback
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
         },
-      },
-    })
-
-    if (error) {
-      console.error('Signup error:', error);
-      
-      if (error.message.includes('User already registered')) {
-        showMessage('An account with this email already exists. Please sign in instead.', 'error');
-        // Switch to login tab
-        setTimeout(() => setActiveTab('login'), 1000);
-      } else {
-        showMessage(error.message, 'error');
+      })
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          showMessage('An account with this email already exists. Please sign in instead.', 'error')
+        } else {
+          showMessage(error.message, 'error')
+        }
+        return
       }
-      return;
-    }
 
-    if (!data?.user) {
-      showMessage('Account creation failed. Please try again.', 'error');
-      return;
-    }
-
-    console.log('User created successfully:', data.user.id);
-
-    // With the database trigger, profile should be created automatically
-    // Give it a moment to process
-    setTimeout(async () => {
-      try {
-        // Verify the profile was created
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('username, role')
-          .eq('user_id', data.user.id)
-          .single();
-
-        if (profileError || !profileData) {
-          console.error('Profile verification failed:', profileError);
-          // Fallback: try to create profile manually
-          const { error: manualProfileError } = await supabase
+      if (data.user) {
+        // Create profile with admin role
+        try {
+          const { error: profileError } = await supabase
             .from('profiles')
-            .upsert({
-              user_id: data.user.id,
-              username: fullName.trim(),
-              email: email.trim(),
-              role: 'admin'
-            });
+            .insert([
+              {
+                user_id: data.user.id,
+                username: fullName,
+                email: email,
+                role: 'admin',
+                created_at: new Date().toISOString(),
+              }
+            ])
 
-          if (manualProfileError) {
-            console.error('Manual profile creation failed:', manualProfileError);
-            showMessage('Account created but profile setup failed. Please contact support.', 'error');
-            return;
+          if (profileError) {
+            console.error('Profile creation error:', profileError)
+            // Don't show error to user as account is still created
           }
+        } catch (profileErr) {
+          console.error('Profile insertion failed:', profileErr)
         }
 
-        showMessage('Account created successfully! Please check your email to confirm your account.', 'success');
-        
-        // Switch to login tab after successful signup
-        setTimeout(() => {
-          setActiveTab('login');
-          setMessage('');
-          setEmail(''); // Clear form
-          setPassword('');
-          setFullName('');
-        }, 3000);
-
-      } catch (verificationError) {
-        console.error('Profile verification error:', verificationError);
-        showMessage('Account created but verification failed. Please try signing in.', 'error');
+        if (data.user.email_confirmed_at) {
+          // User is immediately confirmed (email confirmation disabled)
+          showMessage('Admin account created successfully! Redirecting...', 'success')
+          setTimeout(() => {
+            router.push('/dashboard')
+          }, 1500)
+        } else {
+          // Email confirmation required
+          showMessage('Admin account created! Please check your email and click the confirmation link to complete your registration.', 'success')
+          setActiveTab('login')
+        }
       }
-    }, 1000); // Wait 1 second for trigger to complete
-
-  } catch (error) {
-    console.error('Unexpected signup error:', error);
-    showMessage('An unexpected error occurred. Please try again.', 'error');
+    } catch (error) {
+      showMessage('An unexpected error occurred. Please try again.', 'error')
+    }
   }
-};
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     
@@ -265,7 +243,7 @@ useEffect(() => {
 
   const handleSocialLogin = async (provider) => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback`
@@ -274,11 +252,9 @@ useEffect(() => {
 
       if (error) {
         showMessage(`Error signing in with ${provider}: ${error.message}`, 'error')
-        console.error(`Social login error with ${provider}:`, error)
       }
     } catch (error) {
       showMessage(`An error occurred with ${provider} login.`, 'error')
-      console.error(`Social login error with ${provider}:`, error)
     }
   }
 
@@ -286,7 +262,7 @@ useEffect(() => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center px-4 py-4">
       {/* Logo and Name */}
       <div className="flex items-center justify-center -mt-10">
-        <Image src="/logo.png" alt="SmartCity360 Logo" width={100} height={100} className="w-25 h-25 -mt-6" />
+        <img src="/logo.png" alt="SmartCity360 Logo" className="w-25 h-25 -mt-6" />
         <span className="text-2xl font-bold text-blue-600 -ml-2 -mt-6">SmartCity360</span>
       </div>
 
@@ -446,13 +422,7 @@ useEffect(() => {
             onClick={() => handleSocialLogin('google')}
             disabled={loading}
           >
-            <Image
-  src="https://www.svgrepo.com/show/475656/google-color.svg"
-  alt="Google"
-  width={20}
-  height={20}
-  className="w-5 h-5 mr-2"
-/>
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5 mr-2" />
             Google
           </button>
           <button 
@@ -460,13 +430,8 @@ useEffect(() => {
             onClick={() => handleSocialLogin('facebook')}
             disabled={loading}
           >
-            <Image
-  src="https://www.svgrepo.com/show/475647/facebook-color.svg"
-  alt="Facebook"
-  width={20}
-  height={20}
-  className="w-5 h-5 mr-2"
-/>
+            <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook" className="w-5 h-5 mr-2" />
+            Facebook
           </button>
         </div>
       </div>
