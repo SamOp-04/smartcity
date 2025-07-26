@@ -13,12 +13,6 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     // Mark as client-side
     setIsClient(true)
-    
-    // Check authentication state
-    const loggedIn = localStorage.getItem('loggedIn')
-    if (!loggedIn) {
-      router.push('/login')
-    }
 
     // Check for saved dark mode preference
     const savedDarkMode = localStorage.getItem('darkMode') === 'true'
