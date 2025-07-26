@@ -55,7 +55,7 @@ export default function LoginPage() {
       }
     }
     checkUser()
-  }, [user, authLoading, router])
+  }, [user, authLoading, router,supabase])
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value)

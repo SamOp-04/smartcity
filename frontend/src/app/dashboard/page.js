@@ -4,16 +4,16 @@ import StatsCard from '../components/StatsCard'
 import CategoryPieChart from '../components/CategoryPieChart'
 import RecentComplaintTable from '../components/RecentComplaintTable'
 import { fetchIssues } from '../../lib/issueApi'
-import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+//import { useRouter } from 'next/navigation'
+//import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default function DashboardPage() {
   const [darkMode, setDarkMode] = useState(false)
   const [issues, setIssues] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const router = useRouter()
-  const supabase = createClientComponentClient()
+  //const router = useRouter()
+  //const supabase = createClientComponentClient()
   const darkRef = useRef(darkMode)
 
   useEffect(() => {
@@ -30,23 +30,7 @@ export default function DashboardPage() {
     return () => clearInterval(interval)
   }, [])
 
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: { user: currentUser }, error } = await supabase.auth.getUser()
-        if (error || !currentUser) {
-          router.push('/login')
-          return
-        }
-
-        
-      } catch (err) {
-        console.error('Unexpected error in auth check:', err)
-        router.push('/login')
-      }
-    }
-    checkUser()
-  }, [router,supabase])
+  
 
   useEffect(() => {
     const loadIssues = async () => {
