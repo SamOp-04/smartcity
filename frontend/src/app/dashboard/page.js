@@ -6,7 +6,7 @@ import RecentComplaintTable from '../components/RecentComplaintTable'
 import { fetchIssues } from '../../lib/issueApi'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useAuth } from './login/useAuth'
+import { useAuth } from '../login/useAuth'
 
 export default function DashboardPage() {
   const [hasMounted, setHasMounted] = useState(false)
