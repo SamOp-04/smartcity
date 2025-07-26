@@ -15,7 +15,7 @@ export function useAuth() {
       setUser(data.user ?? null)
       setLoading(false)
 
-      const { data: listen } = supabase.auth.onAuthStateChange((event, session) => {
+      const { data: listen } = supabase.auth.onAuthStateChange((event) => {
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
           setTimeout(async () => { 
             const { data } = await supabase.auth.getUser()
