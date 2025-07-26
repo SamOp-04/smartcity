@@ -4,6 +4,10 @@ import StatsCard from '../components/StatsCard'
 import CategoryPieChart from '../components/CategoryPieChart'
 import RecentComplaintTable from '../components/RecentComplaintTable'
 import { fetchIssues } from '../../lib/issueApi'
+import { useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+
+// And add these to your component:
 
 export default function DashboardPage() {
   const [hasMounted, setHasMounted] = useState(false)
@@ -11,7 +15,8 @@ export default function DashboardPage() {
   const [issues, setIssues] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-
+const router = useRouter()
+const supabase = createClientComponentClient()
   // First useEffect - for dark mode and mounting
   useEffect(() => {
     setHasMounted(true)
@@ -35,6 +40,53 @@ export default function DashboardPage() {
       clearInterval(interval)
     }
   }, [darkMode])
+// Add this useEffect at the top of your dashboard component (before the existing ones)
+useEffect(() => {
+  const checkAuthentication = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        console.log('No user found, redirecting to login')
+        router.push('/')
+        return
+      }
+
+      // Check if user has a profile with admin role
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, username')
+        .eq('user_id', user.id)
+        .single()
+
+      if (profileError || !profileData) {
+        console.error('Profile check failed:', profileError)
+        console.log('No profile found, redirecting to login')
+        await supabase.auth.signOut()
+        router.push('/')
+        return
+      }
+
+      if (profileData.role !== 'admin') {
+        console.log('User is not admin, signing out and redirecting')
+        await supabase.auth.signOut()
+        router.push('/')
+        return
+      }
+
+      // User is authenticated and has admin role
+      console.log('User authenticated as admin:', profileData.username)
+
+    } catch (error) {
+      console.error('Authentication check error:', error)
+      router.push('/')
+    }
+  }
+
+  checkAuthentication()
+}, [router]) // Only depend on router, not supabase to avoid loops
+
+// You'll also need to import useRouter and createClientComponentClient at the top:
 
   // Second useEffect - for fetching issues
   useEffect(() => {

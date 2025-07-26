@@ -101,70 +101,54 @@ export default function LoginPage() {
     }, 5000)
   }
 
-  const handleLogin = async () => {
+  // Replace your useEffect in the login page with this improved version
+useEffect(() => {
+  const checkUser = async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          showMessage('Invalid email or password. Please try again.', 'error')
-        } else if (error.message.includes('Email not confirmed')) {
-          showMessage('Please check your email and click the confirmation link.', 'error')
-        } else {
-          showMessage(error.message, 'error')
-        }
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        // No user logged in, stay on login page
         return
       }
 
-      if (data.user) {
-        // Check user role in profiles table
-        try {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('role, username')
-            .eq('user_id', data.user.id)
-            .single()
+      // User is logged in, check their profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, username')
+        .eq('user_id', user.id)
+        .single()
 
-          if (profileError) {
-            console.error('Profile fetch error:', profileError)
-            showMessage('Account profile not found. Please contact support.', 'error')
-            // Sign out the user since they don't have a valid profile
-            await supabase.auth.signOut()
-            return
-          }
+      if (profileError || !profileData) {
+        console.error('Profile check error:', profileError)
+        // Profile doesn't exist or error occurred
+        // Don't automatically sign out - let them try to create profile
+        console.log('User has no profile, staying on login page')
+        return
+      }
 
-          if (!profileData || profileData.role !== 'admin') {
-            showMessage('Access denied. This application is restricted to administrators only.', 'error')
-            // Sign out the user since they don't have admin access
-            await supabase.auth.signOut()
-            return
-          }
-
-          // If we reach here, user is authenticated and has admin role
-          showMessage(`Welcome back, ${profileData.username || 'Admin'}! Redirecting...`, 'success')
-          setTimeout(() => {
-            router.push('/dashboard')
-          }, 1500)
-
-        } catch (profileErr) {
-          console.error('Profile check failed:', profileErr)
-          showMessage('Unable to verify account permissions. Please try again.', 'error')
-          await supabase.auth.signOut()
-          return
-        }
+      if (profileData.role === 'admin') {
+        // User has admin role, redirect to dashboard
+        console.log('Admin user detected, redirecting to dashboard')
+        router.push('/dashboard')
+      } else {
+        // User exists but doesn't have admin role
+        console.log('User does not have admin role, signing out')
+        await supabase.auth.signOut()
+        showMessage('Access denied. This application is restricted to administrators only.', 'error')
       }
     } catch (error) {
-      showMessage('An unexpected error occurred. Please try again.', 'error')
-      console.error('Login error:', error)
+      console.error('Auth check error:', error)
+      // Don't sign out on error, just log it
     }
   }
 
+  checkUser()
+}, [router, supabase]) // Remove showMessage from dependencies to avoid loops
+
   const handleSignup = async () => {
   try {
-    // Validate required fields before attempting signup
+    // Validate required fields
     if (!fullName.trim()) {
       showMessage('Full name is required', 'error');
       return;
@@ -175,79 +159,91 @@ export default function LoginPage() {
       return;
     }
 
-    console.log('Attempting signup with:', { fullName, email }); // Debug log
+    console.log('Attempting signup with:', { fullName: fullName.trim(), email: email.trim() });
 
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
         data: {
           username: fullName.trim(),
+          full_name: fullName.trim(), // Additional fallback
         },
       },
     })
 
     if (error) {
       console.error('Signup error:', error);
+      
       if (error.message.includes('User already registered')) {
-        showMessage('An account with this email already exists. Please sign in instead.', 'error')
+        showMessage('An account with this email already exists. Please sign in instead.', 'error');
+        // Switch to login tab
+        setTimeout(() => setActiveTab('login'), 1000);
       } else {
-        showMessage(error.message, 'error')
+        showMessage(error.message, 'error');
       }
-      return
+      return;
     }
 
-    // Check if user was created successfully
-    if (!data || !data.user || !data.user.id) {
-      console.error('User creation failed - no user data returned:', data);
+    if (!data?.user) {
       showMessage('Account creation failed. Please try again.', 'error');
       return;
     }
 
-    console.log('User created successfully:', data.user.id); // Debug log
+    console.log('User created successfully:', data.user.id);
 
-    try {
-      // Ensure we have the required data
-      const profileData = {
-        user_id: data.user.id,
-        username: fullName.trim(),
-        role: 'admin',
-        email: email.trim()
-      };
+    // With the database trigger, profile should be created automatically
+    // Give it a moment to process
+    setTimeout(async () => {
+      try {
+        // Verify the profile was created
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('username, role')
+          .eq('user_id', data.user.id)
+          .single();
 
-      console.log('Inserting profile data:', profileData); // Debug log
+        if (profileError || !profileData) {
+          console.error('Profile verification failed:', profileError);
+          // Fallback: try to create profile manually
+          const { error: manualProfileError } = await supabase
+            .from('profiles')
+            .upsert({
+              user_id: data.user.id,
+              username: fullName.trim(),
+              email: email.trim(),
+              role: 'admin'
+            });
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert(profileData, {
-          onConflict: 'user_id'
-        });
+          if (manualProfileError) {
+            console.error('Manual profile creation failed:', manualProfileError);
+            showMessage('Account created but profile setup failed. Please contact support.', 'error');
+            return;
+          }
+        }
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        showMessage('Account created but profile setup failed. Please contact support.', 'error');
-        return;
+        showMessage('Account created successfully! Please check your email to confirm your account.', 'success');
+        
+        // Switch to login tab after successful signup
+        setTimeout(() => {
+          setActiveTab('login');
+          setMessage('');
+          setEmail(''); // Clear form
+          setPassword('');
+          setFullName('');
+        }, 3000);
+
+      } catch (verificationError) {
+        console.error('Profile verification error:', verificationError);
+        showMessage('Account created but verification failed. Please try signing in.', 'error');
       }
+    }, 1000); // Wait 1 second for trigger to complete
 
-      console.log('Profile created successfully'); // Debug log
-      showMessage('Account created successfully! Please check your email to confirm your account.', 'success');
-      
-      // Switch to login tab after successful signup
-      setTimeout(() => {
-        setActiveTab('login');
-        setMessage('');
-      }, 3000);
-
-    } catch (profileErr) {
-      console.error('Profile insertion failed:', profileErr);
-      showMessage('Account created but profile setup failed. Please contact support.', 'error');
-      return;
-    }
   } catch (error) {
     console.error('Unexpected signup error:', error);
     showMessage('An unexpected error occurred. Please try again.', 'error');
   }
-}
+};
   const handleSubmit = async (e) => {
     e.preventDefault()
     
