@@ -1,7 +1,17 @@
 'use client'
-
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function RedirectPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.push('/dashboard')
+    }, 5000) // 5 seconds
+
+    return () => clearTimeout(timer)
+  }, [router])
 
   return (
     <div
