@@ -4,13 +4,16 @@ import StatsCard from '../components/StatsCard'
 import CategoryPieChart from '../components/CategoryPieChart'
 import RecentComplaintTable from '../components/RecentComplaintTable'
 import { fetchIssues } from '../../lib/issueApi'
+import { useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default function DashboardPage() {
   const [darkMode, setDarkMode] = useState(false)
   const [issues, setIssues] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [buffering, setBuffering] = useState(true) // Add buffering state
+  const router = useRouter()
+  const supabase = createClientComponentClient()
   const darkRef = useRef(darkMode)
 
   useEffect(() => {
@@ -27,14 +30,31 @@ export default function DashboardPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Add buffering timer
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setBuffering(false)
-    }, 5000) // 5 seconds
+    const checkUser = async () => {
+      try {
+        const { data: { user: currentUser }, error } = await supabase.auth.getUser()
+        if (error || !currentUser) {
+          router.push('/login')
+          return
+        }
 
-    return () => clearTimeout(timer)
-  }, [])
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', currentUser.id)
+          .single()
+
+        if (profileError || profileData?.role !== 'admin') {
+          router.push('/login')
+        }
+      } catch (err) {
+        console.error('Unexpected error in auth check:', err)
+        router.push('/login')
+      }
+    }
+    checkUser()
+  }, [router])
 
   useEffect(() => {
     const loadIssues = async () => {
@@ -51,12 +71,8 @@ export default function DashboardPage() {
         setLoading(false)
       }
     }
-
-    // Only load issues after buffering is complete
-    if (!buffering) {
-      loadIssues()
-    }
-  }, [buffering])
+    loadIssues()
+  }, [])
 
   const resolved = issues?.filter(issue => issue.status === 'Resolved')?.length || 0
   const inProgress = issues?.filter(issue => issue.status === 'In Progress')?.length || 0
@@ -75,18 +91,6 @@ export default function DashboardPage() {
     resolved_at: issue.resolved_at || null,
     ...issue
   })) || []
-
-  // Show buffering screen for the first 5 seconds
-  if (buffering) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-600">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p>Buffering...</p>
-        </div>
-      </div>
-    )
-  }
 
   if (loading) {
     return (

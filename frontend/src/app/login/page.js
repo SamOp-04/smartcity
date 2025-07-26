@@ -141,7 +141,7 @@ export default function LoginPage() {
 
           showMessage(`Welcome back, ${profileData.username || 'Admin'}! Redirecting...`, 'success')
           setTimeout(() => {
-            router.push('/dashboard')
+            router.push('/test')
           }, 1500)
         } catch (profileErr) {
           console.error('Profile check failed:', profileErr)
