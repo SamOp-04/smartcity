@@ -7,7 +7,7 @@ export async function fetchUsers() {
       .from('profiles')
       .select(`
         id,
-        full_name,
+        username,
         email,
         status,
         role,
@@ -160,7 +160,7 @@ export async function searchUsers(searchTerm, status = null) {
     let query = supabase
       .from('profiles')
       .select('*')
-      .or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+      .or(`username.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
     
     if (status) {
       query = query.eq('status', status)

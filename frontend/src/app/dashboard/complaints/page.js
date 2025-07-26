@@ -17,29 +17,68 @@ export default function ComplaintsPage() {
   const [page, setPage] = useState(1)
   const [complaints, setComplaints] = useState([])
   const [loading, setLoading] = useState(true)
+  const [authChecked, setAuthChecked] = useState(false) // Add auth check state
   const [error, setError] = useState(null)
   const perPage = 10
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.replace('/login')
-        return
-      }
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single()
-      if (error || profile?.role !== 'admin') {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError) {
+          console.error('Auth error:', userError)
+          router.replace('/login')
+          return
+        }
+
+        if (!user) {
+          router.replace('/login')
+          return
+        }
+        
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, username')
+          .eq('user_id', user.id)
+          .single()
+        
+        if (profileError) {
+          console.error('Profile error:', profileError)
+          await supabase.auth.signOut()
+          router.replace('/login')
+          return
+        }
+
+        if (!profile || profile.role !== 'admin') {
+          console.log('User does not have admin role')
+          await supabase.auth.signOut()
+          router.replace('/login')
+          return
+        }
+
+        // User is authenticated and has admin role
+        setAuthChecked(true)
+        setLoading(false)
+      } catch (error) {
+        console.error('Auth check error:', error)
         await supabase.auth.signOut()
         router.replace('/login')
-        return
       }
-      setLoading(false)
     }
+    
     checkUser()
+  }, [router, supabase])
+
+  // Add auth state change listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        router.replace('/login')
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [router, supabase])
 
   useEffect(() => {
@@ -56,7 +95,6 @@ export default function ComplaintsPage() {
 
   const loadComplaints = async () => {
     try {
-      setLoading(true)
       setError(null)
       const data = await fetchIssues()
 
@@ -89,16 +127,15 @@ export default function ComplaintsPage() {
     } catch (err) {
       console.error('Error loading complaints:', err)
       setError('Failed to load complaints. Please try again.')
-    } finally {
-      setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (!loading) {
+    // Only load complaints after auth is checked and user is authenticated
+    if (authChecked && !loading) {
       loadComplaints()
     }
-  }, [loading])
+  }, [authChecked, loading])
 
   const handleStatusUpdate = async (internal_id, newStatus) => {
     try {
@@ -133,11 +170,14 @@ export default function ComplaintsPage() {
     setPage(1)
   }, [filters])
 
-  if (loading) {
+  // Show loading screen while checking auth
+  if (!authChecked || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-600">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-        <p>Checking access...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p>Loading dashboard...</p>
+        </div>
       </div>
     )
   }

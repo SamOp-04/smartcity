@@ -32,7 +32,7 @@ export default function UsersPage() {
       // Transform the data to match expected format
       const transformedUsers = usersData.map(user => ({
         id: user.id,
-        name: user.full_name || user.email?.split('@')[0] || 'Unknown User',
+        name: user.username || user.email?.split('@')[0] || 'Unknown User',
         email: user.email || 'No email',
         status: user.status || 'Active',
         role: user.role || 'User',

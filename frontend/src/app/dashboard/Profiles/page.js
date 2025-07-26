@@ -85,7 +85,7 @@ export default function ProfilePage() {
     if (!user) return null
     
     return {
-      name: profile?.full_name || profile?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+      name: profile?.username || profile?.name || user.user_metadata?.username || user.email?.split('@')[0] || 'User',
       email: user.email || 'No email',
       phone: profile?.phone || user.user_metadata?.phone || '+91 9876543210',
       role: profile?.role || 'User',
