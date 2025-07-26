@@ -156,60 +156,59 @@ export default function LoginPage() {
   }
 
   const handleSignup = async () => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
         },
-      })
+      },
+    })
 
-      if (error) {
-        if (error.message.includes('User already registered')) {
-          showMessage('An account with this email already exists. Please sign in instead.', 'error')
-        } else {
-          showMessage(error.message, 'error')
-        }
-        return
+    if (error) {
+      if (error.message.includes('User already registered')) {
+        showMessage('An account with this email already exists. Please sign in instead.', 'error')
+      } else {
+        showMessage(error.message, 'error')
       }
-
-      if (data.user) {
-        try {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              user_id: data.user.id,
-              username: fullName,
-              email,
-              role: 'admin',
-              created_at: new Date().toISOString(),
-            })
-            .eq('user_id', data.user.id)
-
-          if (profileError) {
-            console.error('Profile creation error:', profileError)
-          }
-        } catch (profileErr) {
-          console.error('Profile insertion failed:', profileErr)
-        }
-
-        if (data.user) {
-          showMessage('Admin account created successfully! Redirecting...', 'success')
-          setTimeout(() => {
-            router.push('/dashboard')
-          }, 1500)
-        } else {
-          showMessage('Admin account created! Please check your email and click the confirmation link to complete your registration.', 'success')
-        }
-      }
-    } catch (error) {
-      console.error('Signup error:', error)
-      showMessage('An unexpected error occurred. Please try again.', 'error')
+      return
     }
+
+    if (data.user) {
+      try {
+        // Use upsert with onConflict parameter
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            user_id: data.user.id,
+            username: fullName,
+            email,
+            role: 'admin',
+            created_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id', // Specify the conflict column
+            ignoreDuplicates: false // Update existing records
+          })
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError)
+        }
+      } catch (profileErr) {
+        console.error('Profile insertion failed:', profileErr)
+      }
+
+      showMessage('Admin account created successfully! Redirecting...', 'success')
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 1500)
+    }
+  } catch (error) {
+    console.error('Signup error:', error)
+    showMessage('An unexpected error occurred. Please try again.', 'error')
   }
+}
 
   const handleSubmit = async (e) => {
     e.preventDefault()
