@@ -61,7 +61,8 @@ export default function LoginPage() {
     setPassword(e.target.value)
     setShowPassword(true)
     setTyping(true)
-
+if (typing)
+{ }
     if (passwordTimeout) clearTimeout(passwordTimeout)
 
     const timeout = setTimeout(() => {
@@ -159,6 +160,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       showMessage('An unexpected error occurred. Please try again.', 'error')
+      console.error('Login error:', error)
     }
   }
 
@@ -219,6 +221,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       showMessage('An unexpected error occurred. Please try again.', 'error')
+      console.error('Signup error:', error)
     }
   }
 
@@ -243,7 +246,7 @@ export default function LoginPage() {
 
   const handleSocialLogin = async (provider) => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback`
@@ -255,6 +258,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       showMessage(`An error occurred with ${provider} login.`, 'error')
+      console.error('Social login error:', error)
     }
   }
 

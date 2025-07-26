@@ -6,7 +6,6 @@ import RecentComplaintTable from '../components/RecentComplaintTable'
 import { fetchIssues } from '../../lib/issueApi'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-
 // And add these to your component:
 
 export default function DashboardPage() {
@@ -17,7 +16,6 @@ export default function DashboardPage() {
   const [error, setError] = useState(null)
 const router = useRouter()
 const supabase = createClientComponentClient()
-  // First useEffect - for dark mode and mounting
   useEffect(() => {
     setHasMounted(true)
     const savedDarkMode = localStorage.getItem('darkMode') === 'true'
@@ -60,7 +58,7 @@ useEffect(() => {
     }
   }
   checkUser()
-}, [])
+}, [router, supabase])
 
 
   useEffect(() => {
