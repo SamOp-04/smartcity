@@ -1,5 +1,5 @@
 'use client'
-import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   HomeIcon,
@@ -8,9 +8,9 @@ import {
   ChartBarIcon,
   ArrowRightOnRectangleIcon,
   UserIcon,
-  Bars3Icon
+  MoonIcon,
+  SunIcon
 } from '@heroicons/react/24/outline'
-import { useEffect, useState } from 'react'
 
 const navItems = [
   { name: 'Overview', path: '/dashboard', icon: HomeIcon },
@@ -20,128 +20,132 @@ const navItems = [
   { name: 'Profile', path: '/dashboard/Profiles', icon: UserIcon }
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, setIsOpen, darkMode, toggleDarkMode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
-    setIsOpen(false)
-  }, [pathname])
+    // Close mobile sidebar on route change
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        // On desktop, don't auto-close sidebar
+        return
+      }
+      setIsOpen(false)
+    }
+    
+    if (window.innerWidth < 768) {
+      setIsOpen(false)
+    }
+    
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [pathname, setIsOpen])
 
   const handleNavigate = (path) => {
     router.push(path)
-    setIsOpen(false)
+    // Only close on mobile
+    if (window.innerWidth < 768) {
+      setIsOpen(false)
+    }
   }
+
+  const renderNavItems = () => (
+    <ul className="mt-6 space-y-1 px-2">
+      {navItems.map((item) => {
+        const isActive = pathname === item.path
+        return (
+          <li key={item.name}>
+            <button
+              onClick={() => handleNavigate(item.path)}
+              className={`
+                flex items-center w-full px-3 py-3 text-[14px] font-medium rounded-lg transition-all
+                ${isOpen ? 'justify-start' : 'justify-center'}
+                ${isActive
+                  ? darkMode 
+                    ? 'bg-slate-700 text-white border-l-4 border-blue-400 shadow-md' 
+                    : 'bg-blue-50 text-blue-600 border-l-4 border-blue-500 shadow-md'
+                  : darkMode
+                    ? 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'}
+              `}
+              title={!isOpen ? item.name : ''}
+            >
+              <item.icon className={`w-5 h-5 ${isActive ? (darkMode ? 'text-blue-400' : 'text-blue-600') : ''} ${isOpen ? 'mr-3' : ''}`} />
+              {isOpen && (
+                <span className="truncate text-[15px]">{item.name}</span>
+              )}
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
 
   return (
     <>
-      {/* Hamburger Button (Mobile Only) */}
-      <div className="md:hidden fixed top-4 left-4 z-[1001]">
-        <button onClick={() => setIsOpen(!isOpen)}>
-          <Bars3Icon className="w-7 h-7 text-blue-600" />
-        </button>
-      </div>
-
-      {/* Sidebar for Desktop */}
+      {/* Sidebar */}
       <div
         className={`
-          fixed top-0 left-0 h-full w-64 bg-white z-[1000] hidden md:flex flex-col justify-between
-          border-r shadow-sm
+          fixed top-0 left-0 h-full backdrop-blur-xl border-r
+          flex flex-col justify-between z-[1000] transform transition-all duration-300
+          ${isOpen ? 'w-72' : 'w-16'}
+          ${isOpen ? 'translate-x-0' : 'md:translate-x-0 -translate-x-full'}
+          ${darkMode 
+            ? 'bg-slate-900/95 border-slate-700' 
+            : 'bg-white/95 border-slate-200'}
         `}
       >
         <div>
-          {/* Logo and Name */}
-          <div className="flex items-center gap-3 px-6 pt-6 pb-4">
-            <img src="/logo.png" alt="Logo" className="w-25 h-25 object-contain -ml-6" />
-            <span className="text-2xl font-bold text-blue-600 -ml-8">SmartCity360</span>
+          {/* Navigation */}
+          <div className="pt-20">
+            {renderNavItems()}
           </div>
-
-          {/* Nav Items (start just below logo) */}
-<ul className="pt-2">
-  {navItems.map((item) => {
-    const isActive = pathname === item.path
-    return (
-      <li key={item.name}>
-        <button
-          onClick={() => handleNavigate(item.path)}
-          className={`w-full text-left transition ${
-            isActive ? 'bg-blue-100' : 'hover:bg-blue-50'
-          }`}
-        >
-          <div
-            className={`flex items-center py-3 px-6 ${
-              isActive ? 'text-blue-600 font-semibold' : 'text-gray-700'
-            }`}
-          >
-            <item.icon className="w-5 h-5 mr-3" />
-            {item.name}
-          </div>
-        </button>
-      </li>
-    )
-  })}
-</ul>
-
         </div>
 
-        {/* Logout */}
-        <div className="px-6 py-4">
-          <button className="flex items-center w-full text-sm text-red-500 hover:text-red-600">
-            <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3" />
-            Logout
+        {/* Bottom Actions */}
+        <div className="px-2 py-6 space-y-2">
+          {/* Dark Mode Toggle */}
+          <button 
+            onClick={toggleDarkMode}
+            className={`
+              flex items-center w-full text-sm transition-all p-3 rounded-lg
+              ${isOpen ? 'justify-start' : 'justify-center'}
+              ${darkMode
+                ? 'text-yellow-400 hover:text-yellow-300 hover:bg-slate-700'
+                : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'}
+            `}
+            title={!isOpen ? (darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode') : ''}
+          >
+            {darkMode ? (
+              <SunIcon className={`w-5 h-5 ${isOpen ? 'mr-3' : ''}`} />
+            ) : (
+              <MoonIcon className={`w-5 h-5 ${isOpen ? 'mr-3' : ''}`} />
+            )}
+            {isOpen && (darkMode ? 'Light Mode' : 'Dark Mode')}
+          </button>
+
+          {/* Logout */}
+          <button 
+            className={`
+              flex items-center w-full text-sm text-red-400 hover:text-red-300 transition-all p-3 rounded-lg
+              ${isOpen ? 'justify-start' : 'justify-center'}
+              ${darkMode ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}
+            `}
+            title={!isOpen ? 'Logout' : ''}
+          >
+            <ArrowRightOnRectangleIcon className={`w-5 h-5 ${isOpen ? 'mr-3' : ''}`} />
+            {isOpen && 'Logout'}
           </button>
         </div>
       </div>
 
-      {/* Mobile Sidebar Fullscreen Overlay */}
+      {/* Backdrop for Mobile */}
       {isOpen && (
-        <div className="md:hidden fixed top-0 left-0 w-full h-screen bg-white z-[999]">
-          <div className="flex flex-col h-full justify-between">
-            <div>
-              {/* Logo + Title */}
-              <div className="px-6 pt-6 pb-4 flex items-center gap-3">
-                <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
-                <span className="text-2xl font-bold text-blue-600">SmartCity360</span>
-              </div>
-
-              {/* Nav Items */}
-              <ul className="pt-2">
-  {navItems.map((item) => {
-    const isActive = pathname === item.path
-    return (
-      <li key={item.name}>
-        <button
-          onClick={() => handleNavigate(item.path)}
-          className={`w-full text-left transition ${
-            isActive ? 'bg-blue-100' : 'hover:bg-blue-50'
-          }`}
-        >
-          <div
-            className={`flex items-center py-3 px-6 ${
-              isActive ? 'text-blue-600 font-semibold' : 'text-gray-700'
-            }`}
-          >
-            <item.icon className="w-5 h-5 mr-3" />
-            {item.name}
-          </div>
-        </button>
-      </li>
-    )
-  })}
-</ul>
-
-            </div>
-
-            {/* Logout */}
-            <div className="px-6 py-4">
-              <button className="flex items-center w-full text-sm text-red-500 hover:text-red-600">
-                <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
+        <div
+          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[999] md:hidden"
+        />
       )}
     </>
   )

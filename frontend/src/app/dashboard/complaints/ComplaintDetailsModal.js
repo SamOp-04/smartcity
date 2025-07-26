@@ -11,63 +11,114 @@ import {
 } from '@heroicons/react/24/outline'
 
 const statusIcons = {
-  'Resolved': <CheckCircleIcon className="w-5 h-5 text-green-600 mr-1" />,
+  'Resolved': <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />,
   'Pending': <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500 mr-1" />,
   'In Progress': <ClockIcon className="w-5 h-5 text-blue-500 mr-1" />
 }
 
 const statusOptions = ['Pending', 'In Progress', 'Resolved']
 
-export default function ComplaintDetailsModal({ complaint, onClose, onStatusUpdate }) {
+export default function ComplaintDetailsModal({ complaint, onClose, onStatusUpdate, darkMode }) {
   if (!complaint) return null
 
   const [status, setStatus] = useState(complaint.status)
   const [message, setMessage] = useState('')
 
   const handleSave = () => {
-  onStatusUpdate(complaint.id, status)
-  setMessage('Status updated successfully!')
-  setTimeout(() => {
-    setMessage('')
-    onClose()
-  }, 1500)
-}
+    onStatusUpdate(complaint.id, status)
+    setMessage('Status updated successfully!')
+    setTimeout(() => {
+      setMessage('')
+      onClose()
+    }, 1500)
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl p-6 w-[90%] max-w-lg relative text-gray-800">
+ <div className="fixed inset-0 z-50 flex items-start justify-center pt-[80px] overflow-y-auto backdrop-blur-sm bg-black/40">
+
+      <div className={`rounded-2xl shadow-2xl p-6 w-[90%] max-w-lg relative transition-colors duration-300 ${
+        darkMode 
+          ? 'bg-slate-800/90 border border-slate-700 text-slate-200' 
+          : 'bg-white/95 border border-white/20 text-gray-800'
+      } backdrop-blur-sm`}>
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+          className={`absolute top-4 right-4 p-2 rounded-xl transition-all duration-200 hover:scale-110 ${
+            darkMode 
+              ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50' 
+              : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100/50'
+          }`}
         >
-          <XMarkIcon className="h-6 w-6" />
+          <XMarkIcon className="h-5 w-5" />
         </button>
 
-        {/* Title */}
-        <h2 className="text-2xl font-bold mb-1 text-gray-900">Complaint #{complaint.id}</h2>
-        <p className="text-sm text-gray-500 mb-4">{complaint.date}</p>
+        {/* Header */}
+        <div className="mb-6">
+          <h2 className={`text-2xl font-bold mb-2 transition-colors duration-300 ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            Complaint #{complaint.id}
+          </h2>
+          <p className={`text-sm transition-colors duration-300 ${
+            darkMode ? 'text-slate-400' : 'text-gray-500'
+          }`}>
+            {complaint.date}
+          </p>
+        </div>
 
         {/* Complaint Details */}
-        <div className="space-y-3 text-[15px] leading-relaxed">
-          <p className="flex items-center">
-            <UserIcon className="h-5 w-5 text-purple-600 mr-2" />
-            <span className="font-medium">User:</span>&nbsp;{complaint.user}
-          </p>
+        <div className="space-y-4 text-[15px] leading-relaxed mb-6">
+          <div className="flex items-center">
+            <UserIcon className={`h-5 w-5 mr-3 ${
+              darkMode ? 'text-purple-400' : 'text-purple-600'
+            }`} />
+            <span className={`font-semibold transition-colors duration-300 ${
+              darkMode ? 'text-slate-300' : 'text-gray-700'
+            }`}>
+              User:
+            </span>
+            <span className={`ml-2 transition-colors duration-300 ${
+              darkMode ? 'text-slate-200' : 'text-gray-800'
+            }`}>
+              {complaint.user}
+            </span>
+          </div>
 
-          <p className="flex items-center">
-            <FolderIcon className="h-5 w-5 text-yellow-600 mr-2" />
-            <span className="font-medium">Category:</span>&nbsp;{complaint.category}
-          </p>
+          <div className="flex items-center">
+            <FolderIcon className={`h-5 w-5 mr-3 ${
+              darkMode ? 'text-yellow-400' : 'text-yellow-600'
+            }`} />
+            <span className={`font-semibold transition-colors duration-300 ${
+              darkMode ? 'text-slate-300' : 'text-gray-700'
+            }`}>
+              Category:
+            </span>
+            <span className={`ml-2 px-2 py-1 rounded-lg text-sm font-medium transition-colors duration-300 ${
+              darkMode 
+                ? 'bg-slate-700 text-slate-200 border border-slate-600' 
+                : 'bg-gray-100 text-gray-700 border border-gray-200'
+            }`}>
+              {complaint.category}
+            </span>
+          </div>
 
           {/* Editable Status */}
           <div className="flex items-center">
             {statusIcons[status]}
-            <span className="font-medium mr-1">Status:</span>
+            <span className={`font-semibold mr-3 transition-colors duration-300 ${
+              darkMode ? 'text-slate-300' : 'text-gray-700'
+            }`}>
+              Status:
+            </span>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="ml-2 px-2 py-1 border rounded-md text-sm"
+              className={`px-3 py-2 border rounded-xl text-sm font-medium transition-all duration-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${
+                darkMode 
+                  ? 'bg-slate-700 border-slate-600 text-slate-200 focus:bg-slate-600' 
+                  : 'bg-white border-gray-200 text-gray-800 focus:bg-gray-50'
+              }`}
             >
               {statusOptions.map((opt) => (
                 <option key={opt} value={opt}>{opt}</option>
@@ -75,33 +126,64 @@ export default function ComplaintDetailsModal({ complaint, onClose, onStatusUpda
             </select>
           </div>
 
-          <p className="flex items-center">
-            <DocumentTextIcon className="h-5 w-5 text-pink-500 mr-2" />
-            <span className="font-medium">Description:</span>&nbsp;{complaint.description}
-          </p>
+          <div className="flex items-start">
+            <DocumentTextIcon className={`h-5 w-5 mr-3 mt-0.5 flex-shrink-0 ${
+              darkMode ? 'text-pink-400' : 'text-pink-500'
+            }`} />
+            <div className="flex-1">
+              <span className={`font-semibold transition-colors duration-300 ${
+                darkMode ? 'text-slate-300' : 'text-gray-700'
+              }`}>
+                Description:
+              </span>
+              <p className={`mt-1 leading-relaxed transition-colors duration-300 ${
+                darkMode ? 'text-slate-200' : 'text-gray-800'
+              }`}>
+                {complaint.description}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Image */}
-        <div className="mt-5">
-          <img
-            src={complaint.image || '/example.jpg'}
-            alt="Complaint Image"
-            className="w-full h-56 object-cover rounded-md border border-gray-200 shadow-sm"
-          />
+        <div className="mb-6">
+          <h3 className={`text-sm font-semibold mb-3 transition-colors duration-300 ${
+            darkMode ? 'text-slate-300' : 'text-gray-700'
+          }`}>
+            Attachment
+          </h3>
+          <div className={`rounded-xl overflow-hidden border transition-colors duration-300 ${
+            darkMode ? 'border-slate-600' : 'border-gray-200'
+          } shadow-lg`}>
+            <img
+              src={complaint.image || '/example.jpg'}
+              alt="Complaint Image"
+              className="w-full h-48 object-cover"
+            />
+          </div>
         </div>
 
         {/* Save Button */}
         <button
-  onClick={handleSave}
-  className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md text-sm font-medium"
->
-  Save Changes
-</button>
-
+          onClick={handleSave}
+          className={`w-full py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ${
+            darkMode 
+              ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white' 
+              : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
+          }`}
+        >
+          Save Changes
+        </button>
 
         {/* Confirmation Message */}
         {message && (
-          <p className="text-center mt-3 text-green-600 text-sm">{message}</p>
+          <div className={`mt-4 p-3 rounded-xl text-center text-sm font-medium transition-all duration-300 ${
+            darkMode 
+              ? 'bg-green-900/30 text-green-400 border border-green-800' 
+              : 'bg-green-50 text-green-600 border border-green-200'
+          }`}>
+            {message}
+          </div>
         )}
       </div>
     </div>

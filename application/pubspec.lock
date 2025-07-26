@@ -159,6 +159,7 @@ packages:
     source: hosted
     version: "5.2.1"
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -168,6 +169,8 @@ packages:
     source: hosted
     version: "6.0.0"
 =======
+=======
+>>>>>>> Stashed changes
   flutter_map:
     dependency: "direct main"
     description:
@@ -340,6 +343,7 @@ packages:
     source: hosted
     version: "3.0.1"
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   lints:
     dependency: transitive
     description:
@@ -349,6 +353,8 @@ packages:
     source: hosted
     version: "6.0.0"
 =======
+=======
+>>>>>>> Stashed changes
   lists:
     dependency: transitive
     description:
@@ -779,8 +785,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     version: "5.14.0"
 =======
+=======
+>>>>>>> Stashed changes
     version: "5.13.0"
   wkt_parser:
     dependency: transitive
