@@ -44,7 +44,7 @@ export default function LoginPage() {
             .single()
 
           if (!profileError && profileData?.role === 'admin') {
-            router.push('/dashboard')
+            router.push('/test')
           } else {
             await supabase.auth.signOut()
           }
