@@ -6,7 +6,7 @@ import RecentComplaintTable from '../components/RecentComplaintTable'
 import { fetchIssues } from '../../lib/issueApi'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useAuth } from '../login/useAuth'
+// And add these to your component:
 
 export default function DashboardPage() {
   const [hasMounted, setHasMounted] = useState(false)
@@ -14,10 +14,10 @@ export default function DashboardPage() {
   const [issues, setIssues] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-    const { user, loadiing } = useAuth()
 const router = useRouter()
 const supabase = createClientComponentClient()
   useEffect(() => {
+    console.log('User activity - Dashboard mounted');
     setHasMounted(true)
     const savedDarkMode = localStorage.getItem('darkMode') === 'true'
     setDarkMode(savedDarkMode)
@@ -42,8 +42,9 @@ const supabase = createClientComponentClient()
 
 useEffect(() => {
   const checkUser = async () => {
+    
+    console.log('User activity - Checking user authentication');
     const { data: { user } } = await supabase.auth.getUser()
-     if (loadiing) return
     if (!user) {
       router.push('/login')
     } else {
@@ -52,22 +53,14 @@ useEffect(() => {
         .select('role')
         .eq('user_id', user.id)
         .single()
-        .then(({ data, error }) => {
-          if (error || data?.role !== 'admin') {
-            supabase.auth.signOut().then(() => {
-              router.push('/login')
-            })
-          }
-        })
 
       if (profileError || profileData.role !== 'admin') {
-        await supabase.auth.signOut()
         router.push('/login')
       }
     }
   }
   checkUser()
-}, [user, loadiing,router, supabase])
+}, [router, supabase])
 
 
   useEffect(() => {

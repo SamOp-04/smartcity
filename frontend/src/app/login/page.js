@@ -191,19 +191,17 @@ if (typing)
       }
 
       if (data.user) {
-        // Create profile with admin role
         try {
           const { error: profileError } = await supabase
             .from('profiles')
-            .insert([
-              {
-                user_id: data.user.id,
-                username: fullName,
-                email: email,
-                role: 'admin',
-                created_at: new Date().toISOString(),
-              }
-            ])
+  .upsert({
+    user_id: data.user.id,
+    username: fullName,
+    email,
+    role: 'admin',
+    created_at: new Date().toISOString(),
+  })
+  .eq('user_id', data.user.id)
 
           if (profileError) {
             console.error('Profile creation error:', profileError)
