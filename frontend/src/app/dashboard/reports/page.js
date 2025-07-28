@@ -20,7 +20,7 @@ export default function ReportsPage() {
   const [complaintData, setComplaintData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [authChecked, setAuthChecked] = useState(false)
+  const [, setAuthChecked] = useState(false)
 useEffect(() => {
     const initializeDarkMode = () => {
       try {
