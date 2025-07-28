@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect} from 'react'
 import StatsCard from '../components/StatsCard'
 import CategoryPieChart from '../components/CategoryPieChart'
 import RecentComplaintTable from '../components/RecentComplaintTable'
