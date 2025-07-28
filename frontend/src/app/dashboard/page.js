@@ -13,10 +13,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isDarkModeInitialized, setIsDarkModeInitialized] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false) // Added missing state
   const router = useRouter()
   const supabase = createClientComponentClient()
-  const darkRef = useRef(darkMode)
-useEffect(() => {
+
+  // Authentication check - consolidated into single useEffect
+  useEffect(() => {
     const checkUser = async () => {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -54,7 +56,6 @@ useEffect(() => {
 
         // User is authenticated and has admin role
         setAuthChecked(true)
-        setLoading(false)
       } catch (error) {
         console.error('Auth check error:', error)
         await supabase.auth.signOut()
@@ -65,7 +66,7 @@ useEffect(() => {
     checkUser()
   }, [router, supabase])
 
-  // Add auth state change listener
+  // Auth state change listener
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
@@ -76,34 +77,33 @@ useEffect(() => {
     return () => subscription.unsubscribe()
   }, [router, supabase])
 
-  useEffect(() => {
-    darkRef.current = darkMode
-  }, [darkMode])
-
-  // Initialize dark mode based on system preference or localStorage
+  // Initialize dark mode - improved with error handling
   useEffect(() => {
     const initializeDarkMode = () => {
-      const savedDarkMode = localStorage.getItem('darkMode')
-      
-      if (savedDarkMode !== null) {
-        // Use saved preference
-        const isDark = savedDarkMode === 'true'
-        setDarkMode(isDark)
-      } else {
-        // Use system preference
+      try {
+        if (typeof window === 'undefined') return
+
+        const savedDarkMode = localStorage.getItem('darkMode')
+        
+        if (savedDarkMode !== null) {
+          const isDark = savedDarkMode === 'true'
+          setDarkMode(isDark)
+        } else {
+          const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          setDarkMode(systemPrefersDark)
+          localStorage.setItem('darkMode', systemPrefersDark.toString())
+        }
+      } catch (error) {
+        console.error('Error accessing localStorage:', error)
+        // Fallback to system preference if localStorage fails
         const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
         setDarkMode(systemPrefersDark)
-        // Save the system preference to localStorage for future visits
-        localStorage.setItem('darkMode', systemPrefersDark.toString())
+      } finally {
+        setIsDarkModeInitialized(true)
       }
-      
-      setIsDarkModeInitialized(true)
     }
 
-    // Only run on client side
-    if (typeof window !== 'undefined') {
-      initializeDarkMode()
-    }
+    initializeDarkMode()
   }, [])
 
   // Listen for system dark mode changes
@@ -113,11 +113,15 @@ useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     
     const handleSystemThemeChange = (e) => {
-      // Only apply system preference if user hasn't manually set a preference
-      const savedDarkMode = localStorage.getItem('darkMode')
-      if (savedDarkMode === null) {
+      try {
+        const savedDarkMode = localStorage.getItem('darkMode')
+        if (savedDarkMode === null) {
+          setDarkMode(e.matches)
+          localStorage.setItem('darkMode', e.matches.toString())
+        }
+      } catch (error) {
+        console.error('Error handling system theme change:', error)
         setDarkMode(e.matches)
-        localStorage.setItem('darkMode', e.matches.toString())
       }
     }
 
@@ -125,58 +129,26 @@ useEffect(() => {
     return () => mediaQuery.removeListener(handleSystemThemeChange)
   }, [])
 
-  // Listen for storage changes (when dark mode is changed in other tabs)
+  // Listen for storage changes (cross-tab synchronization)
   useEffect(() => {
-    const handler = (e) => {
-      if (e.key === 'darkMode') {
+    const handleStorageChange = (e) => {
+      if (e.key === 'darkMode' && e.newValue !== null) {
         const newDark = e.newValue === 'true'
         setDarkMode(newDark)
-        console.log('Dark mode changed via storage:', newDark)
       }
     }
-    window.addEventListener('storage', handler)
-    return () => window.removeEventListener('storage', handler)
-  }, [])
 
-  // Polling for dark mode changes (for same-tab updates)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newDark = localStorage.getItem('darkMode') === 'true'
-      if (newDark !== darkRef.current) {
-        setDarkMode(newDark)
-      }
-    }, 100)
-    return () => clearInterval(interval)
-  }, [])
-
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: { user: currentUser }, error } = await supabase.auth.getUser()
-        if (error || !currentUser) {
-          router.push('/login')
-          return
-        }
-
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', currentUser.id)
-          .single()
-
-        if (profileError || profileData?.role !== 'admin') {
-          router.push('/login')
-        }
-      } catch (err) {
-        console.error('Unexpected error in auth check:', err)
-        router.push('/login')
-      }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange)
+      return () => window.removeEventListener('storage', handleStorageChange)
     }
-    checkUser()
-  }, [router, supabase])
+  }, [])
 
+  // Load issues data
   useEffect(() => {
     const loadIssues = async () => {
+      if (!authChecked) return // Wait for auth check to complete
+
       try {
         setLoading(true)
         const data = await fetchIssues()
@@ -190,8 +162,9 @@ useEffect(() => {
         setLoading(false)
       }
     }
+
     loadIssues()
-  }, [])
+  }, [authChecked])
 
   const resolved = issues?.filter(issue => issue.status === 'Resolved')?.length || 0
   const inProgress = issues?.filter(issue => issue.status === 'In Progress')?.length || 0
@@ -211,8 +184,8 @@ useEffect(() => {
     ...issue
   })) || []
 
-  // Show loading until dark mode is initialized
-  if (!isDarkModeInitialized || loading) {
+  // Show loading until everything is initialized
+  if (!isDarkModeInitialized || !authChecked || loading) {
     return (
       <div className="min-h-screen p-4 sm:p-6 flex items-center justify-center">
         <div className={`text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
@@ -244,6 +217,18 @@ useEffect(() => {
     )
   }
 
+  const handleStatusUpdate = async (id, status) => {
+    try {
+      const { updateIssueStatus } = await import('../../lib/issueApi')
+      await updateIssueStatus(id, status)
+      const updatedIssues = await fetchIssues()
+      setIssues(updatedIssues || [])
+    } catch (err) {
+      console.error('Failed to update issue status:', err)
+      setError('Failed to update issue status')
+    }
+  }
+
   return (
     <div className="min-h-screen p-4 sm:p-6">
       <div className="mb-8">
@@ -269,17 +254,7 @@ useEffect(() => {
       <div>
         <RecentComplaintTable
           complaints={transformedIssues}
-          onStatusUpdate={async (id, status) => {
-            try {
-              const { updateIssueStatus } = await import('../../lib/issueApi')
-              await updateIssueStatus(id, status)
-              const updatedIssues = await fetchIssues()
-              setIssues(updatedIssues || [])
-            } catch (err) {
-              console.error('Failed to update issue status:', err)
-              setError('Failed to update issue status')
-            }
-          }}
+          onStatusUpdate={handleStatusUpdate}
         />
       </div>
     </div>
