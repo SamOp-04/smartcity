@@ -10,7 +10,7 @@ import {
   TrendingUp, PieChart as PieIcon
 } from 'lucide-react'
 import { fetchIssues } from '../../../lib/issueApi'
-
+import { useRouter } from 'next/navigation'
 export default function ReportsPage() {
   const [darkMode, setDarkMode] = useState(false)
   const [timeRange, setTimeRange] = useState('Daily')
@@ -21,6 +21,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [, setAuthChecked] = useState(false)
+  const router = useRouter()
 useEffect(() => {
     const initializeDarkMode = () => {
       try {
