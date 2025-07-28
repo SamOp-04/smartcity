@@ -467,14 +467,6 @@ const [darkMode, setDarkMode] = useState(false)
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5 mr-2" />
             Google
           </button>
-          <button
-            className="w-full flex items-center justify-center border px-4 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-            onClick={() => handleSocialLogin('facebook')}
-            disabled={loading}
-          >
-            <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook" className="w-5 h-5 mr-2" />
-            Facebook
-          </button>
         </div>
       </div>
       <p className="mt-6 text-center text-[14px] text-gray-400 tracking-wide">
