@@ -20,7 +20,51 @@ export default function ReportsPage() {
   const [complaintData, setComplaintData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [authChecked, setAuthChecked] = useState(false)
 useEffect(() => {
+    const initializeDarkMode = () => {
+      try {
+        if (typeof window === 'undefined') return
+
+        const savedDarkMode = localStorage.getItem('darkMode')
+        
+        if (savedDarkMode !== null) {
+          const isDark = savedDarkMode === 'true'
+          setDarkMode(isDark)
+        } else {
+          const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+          setDarkMode(systemPrefersDark)
+          localStorage.setItem('darkMode', systemPrefersDark.toString())
+        }
+      } catch (error) {
+        console.error('Error accessing localStorage:', error)
+        const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        setDarkMode(systemPrefersDark)
+      } finally {
+        setIsDarkModeInitialized(true)
+      }
+    }
+
+    initializeDarkMode()
+  }, [])
+
+  // Listen for storage changes (cross-tab synchronization)
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'darkMode' && e.newValue !== null) {
+        const newDark = e.newValue === 'true'
+        setDarkMode(newDark)
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange)
+      return () => window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [])
+
+  // Authentication check - consolidated
+  useEffect(() => {
     const checkUser = async () => {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -58,7 +102,6 @@ useEffect(() => {
 
         // User is authenticated and has admin role
         setAuthChecked(true)
-        setLoading(false)
       } catch (error) {
         console.error('Auth check error:', error)
         await supabase.auth.signOut()
@@ -69,16 +112,18 @@ useEffect(() => {
     checkUser()
   }, [router, supabase])
 
-  // Add auth state change listener
+  // Auth state change listener
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
+        setAuthChecked(false)
         router.push('/login')
       }
     })
 
     return () => subscription.unsubscribe()
   }, [router, supabase])
+
 
   // Generate trend data from real complaints
   const generateTrendData = useCallback((data) => {
