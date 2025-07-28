@@ -1,23 +1,82 @@
 'use client'
-
 import { useState, useEffect } from 'react'
 import UserFilter from './UserFilter'
 import UserRow from './UserRow'
 import UserModal from './UserModal'
 import { Users, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react'
 import { fetchUsersAlternative, updateUserStatus, getUserStats } from '../../../lib/userApi'
-
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 export default function UsersPage() {
   const [darkMode, setDarkMode] = useState(false)
   const [users, setUsers] = useState([])
   const [filters, setFilters] = useState({ search: '', status: '' })
   const [selectedUser, setSelectedUser] = useState(null)
   const [page, setPage] = useState(1)
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [stats, setStats] = useState({ total: 0, active: 0, blocked: 0 })
   const perPage = 8
+useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError) {
+          console.error('Auth error:', userError)
+          router.replace('/login')
+          return
+        }
 
+        if (!user) {
+          router.replace('/login')
+          return
+        }
+        
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, username')
+          .eq('user_id', user.id)
+          .single()
+        
+        if (profileError) {
+          console.error('Profile error:', profileError)
+          await supabase.auth.signOut()
+          router.replace('/login')
+          return
+        }
+
+        if (!profile || profile.role !== 'admin') {
+          console.log('User does not have admin role')
+          await supabase.auth.signOut()
+          router.replace('/login')
+          return
+        }
+
+        // User is authenticated and has admin role
+        setAuthChecked(true)
+        setLoading(false)
+      } catch (error) {
+        console.error('Auth check error:', error)
+        await supabase.auth.signOut()
+        router.replace('/login')
+      }
+    }
+    
+    checkUser()
+  }, [router, supabase])
+
+  // Add auth state change listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        router.push('/login')
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [router, supabase])
   // Load users from Supabase
   const loadUsers = async () => {
     try {
