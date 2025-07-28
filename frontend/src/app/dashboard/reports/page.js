@@ -111,7 +111,7 @@ useEffect(() => {
     }
     
     checkUser()
-  }, [router, supabase])
+  }, [router])
 
   // Auth state change listener
   useEffect(() => {
@@ -123,7 +123,7 @@ useEffect(() => {
     })
 
     return () => subscription.unsubscribe()
-  }, [router, supabase])
+  }, [router])
 
 
   // Generate trend data from real complaints

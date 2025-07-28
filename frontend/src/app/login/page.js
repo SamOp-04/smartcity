@@ -13,7 +13,7 @@ import {
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from './useAuth'
-
+import Image from 'next/image'
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState('login')
   const [showPassword, setShowPassword] = useState(false)
@@ -322,7 +322,16 @@ const [darkMode, setDarkMode] = useState(false)
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center px-4 py-4">
       <div className="flex items-center justify-center -mt-10">
-        <img src="/logo.png" alt="SmartCity360 Logo" className="w-25 h-25 -mt-6" />
+        import Image from 'next/image'
+
+<Image
+  src="/logo.png"
+  alt="SmartCity360 Logo"
+  width={100}     
+  height={100}    
+  className="-mt-6"
+/>
+
         <span className="text-2xl font-bold text-blue-600 -ml-2 -mt-6">SmartCity360</span>
       </div>
       <div className="bg-white shadow-lg hover:shadow-2xl transition duration-300 rounded-xl max-w-md w-full p-8">
@@ -464,7 +473,13 @@ const [darkMode, setDarkMode] = useState(false)
             onClick={() => handleSocialLogin('google')}
             disabled={loading}
           >
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5 mr-2" />
+            <Image
+  src="https://www.svgrepo.com/show/475656/google-color.svg"
+  alt="Google"
+  width={20}
+  height={20}
+  className="mr-2"
+/>
             Google
           </button>
         </div>
