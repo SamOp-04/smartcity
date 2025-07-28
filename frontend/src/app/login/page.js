@@ -322,8 +322,6 @@ const [darkMode, setDarkMode] = useState(false)
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center px-4 py-4">
       <div className="flex items-center justify-center -mt-10">
-        import Image from 'next/image'
-
 <Image
   src="/logo.png"
   alt="SmartCity360 Logo"
