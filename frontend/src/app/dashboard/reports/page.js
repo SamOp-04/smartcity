@@ -12,7 +12,6 @@ import {
 import { fetchIssues } from '../../../lib/issueApi'
 import { useRouter } from 'next/navigation'
 export default function ReportsPage() {
-  const [darkMode, setDarkMode] = useState(false)
   const [timeRange, setTimeRange] = useState('Daily')
   const [daily, setDaily] = useState([])
   const [weekly, setWeekly] = useState([])
@@ -22,49 +21,7 @@ export default function ReportsPage() {
   const [error, setError] = useState(null)
   const [, setAuthChecked] = useState(false)
   const router = useRouter()
-useEffect(() => {
-    const initializeDarkMode = () => {
-      try {
-        if (typeof window === 'undefined') return
 
-        const savedDarkMode = localStorage.getItem('darkMode')
-        
-        if (savedDarkMode !== null) {
-          const isDark = savedDarkMode === 'true'
-          setDarkMode(isDark)
-        } else {
-          const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-          setDarkMode(systemPrefersDark)
-          localStorage.setItem('darkMode', systemPrefersDark.toString())
-        }
-      } catch (error) {
-        console.error('Error accessing localStorage:', error)
-        const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-        setDarkMode(systemPrefersDark)
-      } finally {
-        setIsDarkModeInitialized(true)
-      }
-    }
-
-    initializeDarkMode()
-  }, [])
-
-  // Listen for storage changes (cross-tab synchronization)
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === 'darkMode' && e.newValue !== null) {
-        const newDark = e.newValue === 'true'
-        setDarkMode(newDark)
-      }
-    }
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', handleStorageChange)
-      return () => window.removeEventListener('storage', handleStorageChange)
-    }
-  }, [])
-
-  // Authentication check - consolidated
   useEffect(() => {
     const checkUser = async () => {
       try {
