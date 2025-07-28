@@ -24,7 +24,7 @@ export default function ProfilePage() {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', user.id)
+            .eq('user_id', user.id)
             .single()
           
           if (!profileError && profileData) {
@@ -85,10 +85,10 @@ export default function ProfilePage() {
     if (!user) return null
     
     return {
-      name: profile?.username || profile?.name || user.user_metadata?.username || user.email?.split('@')[0] || 'User',
+      name: profile?.username || profile?.name || user.user_metadata?.display_name || user.email?.split('@')[0] || 'User',
       email: user.email || 'No email',
       phone: profile?.phone || user.user_metadata?.phone || '+91 9876543210',
-      role: profile?.role || 'User',
+      role: profile?.role || 'admin',
       location: profile?.location || 'Location not set',
       avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url
     }

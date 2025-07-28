@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [issues, setIssues] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [isDarkModeInitialized, setIsDarkModeInitialized] = useState(false)
   const router = useRouter()
   const supabase = createClientComponentClient()
   const darkRef = useRef(darkMode)
@@ -20,6 +21,65 @@ export default function DashboardPage() {
     darkRef.current = darkMode
   }, [darkMode])
 
+  // Initialize dark mode based on system preference or localStorage
+  useEffect(() => {
+    const initializeDarkMode = () => {
+      const savedDarkMode = localStorage.getItem('darkMode')
+      
+      if (savedDarkMode !== null) {
+        // Use saved preference
+        const isDark = savedDarkMode === 'true'
+        setDarkMode(isDark)
+      } else {
+        // Use system preference
+        const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        setDarkMode(systemPrefersDark)
+        // Save the system preference to localStorage for future visits
+        localStorage.setItem('darkMode', systemPrefersDark.toString())
+      }
+      
+      setIsDarkModeInitialized(true)
+    }
+
+    // Only run on client side
+    if (typeof window !== 'undefined') {
+      initializeDarkMode()
+    }
+  }, [])
+
+  // Listen for system dark mode changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    
+    const handleSystemThemeChange = (e) => {
+      // Only apply system preference if user hasn't manually set a preference
+      const savedDarkMode = localStorage.getItem('darkMode')
+      if (savedDarkMode === null) {
+        setDarkMode(e.matches)
+        localStorage.setItem('darkMode', e.matches.toString())
+      }
+    }
+
+    mediaQuery.addListener(handleSystemThemeChange)
+    return () => mediaQuery.removeListener(handleSystemThemeChange)
+  }, [])
+
+  // Listen for storage changes (when dark mode is changed in other tabs)
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'darkMode') {
+        const newDark = e.newValue === 'true'
+        setDarkMode(newDark)
+        console.log('Dark mode changed via storage:', newDark)
+      }
+    }
+    window.addEventListener('storage', handler)
+    return () => window.removeEventListener('storage', handler)
+  }, [])
+
+  // Polling for dark mode changes (for same-tab updates)
   useEffect(() => {
     const interval = setInterval(() => {
       const newDark = localStorage.getItem('darkMode') === 'true'
@@ -54,7 +114,7 @@ export default function DashboardPage() {
       }
     }
     checkUser()
-  }, [router])
+  }, [router, supabase])
 
   useEffect(() => {
     const loadIssues = async () => {
@@ -92,7 +152,8 @@ export default function DashboardPage() {
     ...issue
   })) || []
 
-  if (loading) {
+  // Show loading until dark mode is initialized
+  if (!isDarkModeInitialized || loading) {
     return (
       <div className="min-h-screen p-4 sm:p-6 flex items-center justify-center">
         <div className={`text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>

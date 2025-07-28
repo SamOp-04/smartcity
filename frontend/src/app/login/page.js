@@ -1,6 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect,useRef } from 'react'
 import Link from 'next/link'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import {
@@ -29,7 +29,82 @@ export default function LoginPage() {
   const [errors, setErrors] = useState({})
   const router = useRouter()
   const supabase = createClientComponentClient()
+const [darkMode, setDarkMode] = useState(false)
+  const [, setIsDarkModeInitialized] = useState(false)
+  const darkRef = useRef(darkMode)
 
+  useEffect(() => {
+    darkRef.current = darkMode
+  }, [darkMode])
+
+  // Initialize dark mode based on system preference or localStorage
+  useEffect(() => {
+    const initializeDarkMode = () => {
+      const savedDarkMode = localStorage.getItem('darkMode')
+      
+      if (savedDarkMode !== null) {
+        // Use saved preference
+        const isDark = savedDarkMode === 'true'
+        setDarkMode(isDark)
+      } else {
+        // Use system preference
+        const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        setDarkMode(systemPrefersDark)
+        // Save the system preference to localStorage for future visits
+        localStorage.setItem('darkMode', systemPrefersDark.toString())
+      }
+      
+      setIsDarkModeInitialized(true)
+    }
+
+    // Only run on client side
+    if (typeof window !== 'undefined') {
+      initializeDarkMode()
+    }
+  }, [])
+
+  // Listen for system dark mode changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    
+    const handleSystemThemeChange = (e) => {
+      // Only apply system preference if user hasn't manually set a preference
+      const savedDarkMode = localStorage.getItem('darkMode')
+      if (savedDarkMode === null) {
+        setDarkMode(e.matches)
+        localStorage.setItem('darkMode', e.matches.toString())
+      }
+    }
+
+    mediaQuery.addListener(handleSystemThemeChange)
+    return () => mediaQuery.removeListener(handleSystemThemeChange)
+  }, [])
+
+  // Listen for storage changes (when dark mode is changed in other tabs)
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'darkMode') {
+        const newDark = e.newValue === 'true'
+        setDarkMode(newDark)
+        console.log('Dark mode changed via storage:', newDark)
+      }
+    }
+    window.addEventListener('storage', handler)
+    return () => window.removeEventListener('storage', handler)
+  }, [])
+
+  // Polling for dark mode changes (for same-tab updates)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newDark = localStorage.getItem('darkMode') === 'true'
+      if (newDark !== darkRef.current) {
+        setDarkMode(newDark)
+      }
+    }, 100)
+    return () => clearInterval(interval)
+  }, [])
   useEffect(() => {
     const checkUser = async () => {
       if (authLoading) return

@@ -1,6 +1,7 @@
 'use client'
-import {  useEffect } from 'react'
+import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import {
   HomeIcon,
   DocumentTextIcon,
@@ -23,6 +24,7 @@ const navItems = [
 export default function Sidebar({ isOpen, setIsOpen, darkMode, toggleDarkMode }) {
   const pathname = usePathname()
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     // Close mobile sidebar on route change
@@ -47,6 +49,27 @@ export default function Sidebar({ isOpen, setIsOpen, darkMode, toggleDarkMode })
     // Only close on mobile
     if (window.innerWidth < 768) {
       setIsOpen(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error('Error signing out:', error)
+        return
+      }
+
+      // Clear any local storage data if needed
+      localStorage.removeItem('darkMode') // Optional: you might want to keep this
+      
+      // Redirect to login page
+      router.push('/login')
+      
+    } catch (error) {
+      console.error('Logout error:', error)
     }
   }
 
@@ -127,6 +150,7 @@ export default function Sidebar({ isOpen, setIsOpen, darkMode, toggleDarkMode })
 
           {/* Logout */}
           <button 
+            onClick={handleLogout}
             className={`
               flex items-center w-full text-sm text-red-400 hover:text-red-300 transition-all p-3 rounded-lg
               ${isOpen ? 'justify-start' : 'justify-center'}

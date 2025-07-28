@@ -107,18 +107,13 @@ async def update_issue_priority(issue_id: str, priority_score: int, reasoning: s
 async def assess_issue_damage(issue: IssueData) -> Optional[dict]:
     """Assess damage for an issue using the AI model"""
     try:
-        # Use the first image if available
         if not issue.image_urls:
             logger.warning(f"No images available for issue {issue.id}")
             return {
                 "priority_score": 10,  # Default score
                 "reasoning": "No images provided for assessment. Using default priority score."
             }
-        
-        # Get the first image URL
         image_url = issue.image_urls[0]
-        
-        # Call the damage assessor
         result = assessor.assess_damage(
             heading=issue.title,
             description=issue.description,

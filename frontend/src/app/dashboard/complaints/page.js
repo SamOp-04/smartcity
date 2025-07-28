@@ -93,47 +93,61 @@ export default function ComplaintsPage() {
     return () => clearInterval(interval)
   }, [darkMode])
 
-  const loadComplaints = async () => {
-    try {
-      setError(null)
-      const data = await fetchIssues()
+const loadComplaints = async () => {
+  try {
+    setError(null)
+    const data = await fetchIssues()
 
-      console.log('Raw data from Supabase:', data)
-      console.log('Data length:', data?.length)
+    console.log('Raw data from Supabase:', data)
+    console.log('Data length:', data?.length)
 
-      const transformedData = data.map((issue, index) => {
-        if (index === 0) {
-          console.log('Sample issue:', issue)
-          console.log('User data:', issue.users)
-          console.log('User display name:', issue.user_display_name)
-        }
+    const transformedData = data.map((issue, index) => {
+      if (index === 0) {
+        console.log('Sample issue:', issue)
+        console.log('User data:', issue.users)
+        console.log('User display name:', issue.username)
+        console.log('Priority score:', issue.priority_score)
+      }
 
-return {
-  internal_id: issue.id,
-  no: index + 1,
-  category: issue.title,
-  title: issue.title,
-  description: issue.description || 'No description provided',
-  status: issue.status || 'Assessed',
-  date: issue.created_at ? new Date(issue.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-  created_at: issue.created_at,
-  image: issue.image_urls || [], // Keep the full array for potential future use
-  image_url: (issue.image_urls && 
-             Array.isArray(issue.image_urls) && 
-             issue.image_urls.length > 0 && 
-             issue.image_urls[0]?.trim()) ? issue.image_urls[0].trim() : null,
-  user: issue.user_display_name || issue.users?.username || 'Anonymous User'
-};
+      return {
+        internal_id: issue.id,
+        no: index + 1,
+        category: issue.title,
+        title: issue.title,
+        description: issue.description || 'No description provided',
+        status: issue.status || 'Assessed',
+        date: issue.created_at ? new Date(issue.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        created_at: issue.created_at,
+        priority_score: issue.priority_score || 0, // Add priority_score to transformed data
+        image: issue.image_urls || [], // Keep the full array for potential future use
+        image_url: (issue.image_urls && 
+                   Array.isArray(issue.image_urls) && 
+                   issue.image_urls.length > 0 && 
+                   issue.image_urls[0]?.trim()) ? issue.image_urls[0].trim() : null,
+        user: issue.username || issue.users?.username || 'Anonymous User'
+      };
+    })
 
-      })
+    // Sort by priority_score in descending order (highest priority first)
+    const sortedData = transformedData.sort((a, b) => {
+      const priorityA = a.priority_score || 0
+      const priorityB = b.priority_score || 0
+      return priorityB - priorityA // Descending order
+    })
 
-      console.log('Transformed data:', transformedData)
-      setComplaints(transformedData)
-    } catch (err) {
-      console.error('Error loading complaints:', err)
-      setError('Failed to load complaints. Please try again.')
-    }
+    // Update the 'no' field after sorting to maintain correct numbering
+    const finalData = sortedData.map((item, index) => ({
+      ...item,
+      no: index + 1
+    }))
+
+    console.log('Transformed and sorted data:', finalData)
+    setComplaints(finalData)
+  } catch (err) {
+    console.error('Error loading complaints:', err)
+    setError('Failed to load complaints. Please try again.')
   }
+}
 
   useEffect(() => {
     // Only load complaints after auth is checked and user is authenticated
