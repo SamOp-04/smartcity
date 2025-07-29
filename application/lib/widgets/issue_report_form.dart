@@ -32,10 +32,14 @@ class _IssueReportFormState extends State<IssueReportForm>
   LatLng? _selectedLocation;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  static const String BACKEND_URL = 'http://192.168.1.212:8000'; 
+
   final List<Map<String, dynamic>> _categories = [
     {'name': 'General', 'icon': Icons.help_outline, 'color': Colors.blue},
-    {'name': 'Infrastructure', 'icon': Icons.construction, 'color': Colors.orange},
+    {
+      'name': 'Infrastructure',
+      'icon': Icons.construction,
+      'color': Colors.orange,
+    },
     {'name': 'Safety', 'icon': Icons.security, 'color': Colors.red},
     {'name': 'Environment', 'icon': Icons.eco, 'color': Colors.green},
     {'name': 'Other', 'icon': Icons.more_horiz, 'color': Colors.grey},
@@ -84,7 +88,10 @@ class _IssueReportFormState extends State<IssueReportForm>
     }
 
     if (permission == LocationPermission.deniedForever) {
-      _showSnackBar('Location permission permanently denied.', SnackBarType.error);
+      _showSnackBar(
+        'Location permission permanently denied.',
+        SnackBarType.error,
+      );
       return null;
     }
 
@@ -101,7 +108,9 @@ class _IssueReportFormState extends State<IssueReportForm>
       context: context,
       builder: (outerContext) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Container(
             padding: const EdgeInsets.all(24),
             constraints: BoxConstraints(
@@ -113,15 +122,16 @@ class _IssueReportFormState extends State<IssueReportForm>
               children: [
                 Row(
                   children: [
-                    Icon(Icons.location_on,
-                        color: Theme.of(context).colorScheme.primary),
+                    Icon(
+                      Icons.location_on,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         "Pin Your Location",
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -134,7 +144,9 @@ class _IssueReportFormState extends State<IssueReportForm>
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withOpacity(0.3),
                       ),
                     ),
                     child: ClipRRect(
@@ -154,7 +166,7 @@ class _IssueReportFormState extends State<IssueReportForm>
                             children: [
                               TileLayer(
                                 urlTemplate:
-                                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                                 subdomains: const ['a', 'b', 'c'],
                                 userAgentPackageName: 'com.example.app',
                               ),
@@ -192,17 +204,22 @@ class _IssueReportFormState extends State<IssueReportForm>
                       onPressed: () async {
                         try {
                           final placemarks = await geo.placemarkFromCoordinates(
-                              selectedPosition.latitude, selectedPosition.longitude);
+                            selectedPosition.latitude,
+                            selectedPosition.longitude,
+                          );
 
                           if (placemarks.isNotEmpty) {
                             final place = placemarks.first;
-                            final address = [
-                              place.name,
-                              place.street,
-                              place.locality,
-                              place.administrativeArea,
-                              place.postalCode,
-                            ].where((e) => e != null && e.isNotEmpty).join(', ');
+                            final address =
+                                [
+                                      place.name,
+                                      place.street,
+                                      place.locality,
+                                      place.administrativeArea,
+                                      place.postalCode,
+                                    ]
+                                    .where((e) => e != null && e.isNotEmpty)
+                                    .join(', ');
 
                             setState(() {
                               _addressController.text = address;
@@ -210,7 +227,10 @@ class _IssueReportFormState extends State<IssueReportForm>
                             });
                           }
                         } catch (e) {
-                          _showSnackBar('Error getting address: ${e.toString()}', SnackBarType.error);
+                          _showSnackBar(
+                            'Error getting address: ${e.toString()}',
+                            SnackBarType.error,
+                          );
                         }
 
                         Navigator.pop(outerContext);
@@ -243,7 +263,10 @@ class _IssueReportFormState extends State<IssueReportForm>
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Error picking image: ${e.toString()}', SnackBarType.error);
+        _showSnackBar(
+          'Error picking image: ${e.toString()}',
+          SnackBarType.error,
+        );
       }
     }
   }
@@ -254,59 +277,96 @@ class _IssueReportFormState extends State<IssueReportForm>
       if (userId == null) throw Exception('User not authenticated');
 
       final fileExt = imageFile.path.split('.').last;
-      final fileName = '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final fileName =
+          '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
       final bytes = await imageFile.readAsBytes();
 
       await SupabaseClientManager.client.storage
           .from('issue-images')
           .uploadBinary(
-        fileName,
-        bytes,
-        fileOptions: FileOptions(
-          contentType: 'image/$fileExt',
-          upsert: false,
-        ),
-      );
+            fileName,
+            bytes,
+            fileOptions: FileOptions(
+              contentType: 'image/$fileExt',
+              upsert: false,
+            ),
+          );
 
       return SupabaseClientManager.client.storage
           .from('issue-images')
           .getPublicUrl(fileName);
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Error uploading image: ${e.toString()}', SnackBarType.error);
+        _showSnackBar(
+          'Error uploading image: ${e.toString()}',
+          SnackBarType.error,
+        );
       }
       return null;
     }
   }
-Future<void> _triggerAssessment(String issueId) async {
+
+Future<String?> getBackendUrlFromSupabase() async {
     try {
+      final response = await Supabase.instance.client
+          .from('backend_url')
+          .select('url')
+          .eq('name', 'Main API') // Query by name instead of ID
+          .maybeSingle();
+      print(response?['url']);
+      if (response != null && response['url'] != null) {
+        return response['url'] as String;
+      } else {
+        print('No matching backend_url found.');
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching backend URL: $e');
+      return null;
+    }
+  }
+
+  Future<void> _triggerAssessment(String issueId) async {
+    try {
+      final backendUrl = await getBackendUrlFromSupabase();
+
+      if (backendUrl == null) {
+        _showSnackBar('Failed to get backend URL.', SnackBarType.error);
+        return;
+      }
+
       final response = await http.post(
-        Uri.parse('$BACKEND_URL/assess-issue'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'issue_id': issueId,
-        }),
+        Uri.parse('$backendUrl/assess-issue'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'issue_id': issueId}),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success']) {
-          _showSnackBar('Issue queued for AI assessment!', SnackBarType.success);
+          _showSnackBar(
+            'Issue queued for AI assessment!',
+            SnackBarType.success,
+          );
         } else {
-          _showSnackBar('Assessment queuing failed: ${data['message']}', SnackBarType.warning);
+          _showSnackBar(
+            'Assessment queuing failed: ${data['message']}',
+            SnackBarType.warning,
+          );
         }
       } else {
         throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
       print('Assessment trigger error: $e');
-      _showSnackBar('Assessment queuing failed, but issue was saved', SnackBarType.warning);
+      _showSnackBar(
+        'Assessment queuing failed, but issue was saved',
+        SnackBarType.warning,
+      );
     }
   }
 
-Future<void> _submitForm() async {
+  Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -332,29 +392,28 @@ Future<void> _submitForm() async {
 
       final userId = SupabaseClientManager.client.auth.currentUser?.id;
       if (userId == null) throw Exception('User not authenticated');
-
-      // Insert the issue and get the ID
-      final response = await SupabaseClientManager.client.from('issues').insert({
-        'user_id': userId,
-        'title': _titleController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'category': _selectedCategory,
-        'status': 'Pending',
-        'image_urls': allImageUrls,
-        'address': _addressController.text.trim(),
-        'latitude': latLng.latitude,
-        'longitude': latLng.longitude,
-      }).select();
+      final response =
+          await SupabaseClientManager.client.from('issues').insert({
+            'user_id': userId,
+            'title': _titleController.text.trim(),
+            'description': _descriptionController.text.trim(),
+            'category': _selectedCategory,
+            'status': 'Pending',
+            'image_urls': allImageUrls,
+            'address': _addressController.text.trim(),
+            'latitude': latLng.latitude,
+            'longitude': latLng.longitude,
+          }).select();
 
       if (response.isNotEmpty) {
         final issueId = response[0]['id'].toString();
-        
+
         if (mounted) {
           _showSnackBar('Issue reported successfully!', SnackBarType.success);
-          
+
           // Trigger AI assessment in the background
           _triggerAssessment(issueId);
-          
+
           // Reset the form
           _formKey.currentState!.reset();
           setState(() {
@@ -369,13 +428,12 @@ Future<void> _submitForm() async {
       } else {
         throw Exception('Failed to insert issue');
       }
-    } on PostgrestException catch (e) {
-      if (mounted) {
-        _showSnackBar('Database error: ${e.message}', SnackBarType.error);
-      }
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Error submitting issue: ${e.toString()}', SnackBarType.error);
+        _showSnackBar(
+          'Error submitting issue: ${e.toString()}',
+          SnackBarType.error,
+        );
       }
     } finally {
       if (mounted) {
@@ -403,7 +461,9 @@ Future<void> _submitForm() async {
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: type == SnackBarType.success ? Colors.green : Colors.red,
+        backgroundColor: type == SnackBarType.success
+            ? Colors.green
+            : Colors.red,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -424,9 +484,7 @@ Future<void> _submitForm() async {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
@@ -441,7 +499,9 @@ Future<void> _submitForm() async {
           ),
         ),
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        fillColor: Theme.of(
+          context,
+        ).colorScheme.surfaceVariant.withOpacity(0.3),
       ),
       validator: validator,
     );
@@ -513,9 +573,7 @@ Future<void> _submitForm() async {
       child: Container(
         width: 120,
         height: 120,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
         child: Stack(
           children: [
             ClipRRect(
@@ -536,7 +594,7 @@ Future<void> _submitForm() async {
                         strokeWidth: 2,
                         value: loadingProgress.expectedTotalBytes != null
                             ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
+                                  loadingProgress.expectedTotalBytes!
                             : null,
                       ),
                     ),
@@ -586,9 +644,7 @@ Future<void> _submitForm() async {
       child: Container(
         width: 120,
         height: 120,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
         child: Stack(
           children: [
             ClipRRect(
@@ -646,12 +702,16 @@ Future<void> _submitForm() async {
                     padding: const EdgeInsets.only(right: 8),
                     child: _buildImageCard(_uploadedImageUrls[index]),
                   );
-                } else if (index < _uploadedImageUrls.length + _imageFiles.length) {
+                } else if (index <
+                    _uploadedImageUrls.length + _imageFiles.length) {
                   // Show local images
                   final localIndex = index - _uploadedImageUrls.length;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: _buildLocalImageCard(_imageFiles[localIndex], localIndex),
+                    child: _buildLocalImageCard(
+                      _imageFiles[localIndex],
+                      localIndex,
+                    ),
                   );
                 } else {
                   // Show add button
@@ -724,7 +784,9 @@ Future<void> _submitForm() async {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withOpacity(0.2),
                   ),
                 ),
                 child: Padding(
@@ -732,7 +794,10 @@ Future<void> _submitForm() async {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSectionHeader('Basic Information', Icons.info_outline),
+                      _buildSectionHeader(
+                        'Basic Information',
+                        Icons.info_outline,
+                      ),
                       const SizedBox(height: 16),
                       _buildTextField(
                         controller: _titleController,
@@ -766,7 +831,9 @@ Future<void> _submitForm() async {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withOpacity(0.2),
                   ),
                 ),
                 child: Padding(
@@ -783,7 +850,8 @@ Future<void> _submitForm() async {
                               controller: _addressController,
                               label: 'Address or Landmark',
                               icon: Icons.location_on,
-                              validator: (value) => value == null || value.isEmpty
+                              validator: (value) =>
+                                  value == null || value.isEmpty
                                   ? 'Please enter an address'
                                   : null,
                             ),
@@ -806,7 +874,9 @@ Future<void> _submitForm() async {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withOpacity(0.2),
                   ),
                 ),
                 child: Padding(
@@ -825,27 +895,32 @@ Future<void> _submitForm() async {
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
                     : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.send),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Submit Report',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        fontWeight: FontWeight.bold,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.send),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Submit Report',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
               const SizedBox(height: 20),
             ],
