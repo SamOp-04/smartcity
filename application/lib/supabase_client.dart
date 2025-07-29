@@ -16,9 +16,10 @@ class SupabaseClientManager {
         debug: true,
       );
 
-      // Initialize Google Sign-In
+      // Initialize Google Sign-In with your Web Client ID
       _googleSignIn = GoogleSignIn(
         serverClientId: dotenv.get('WEB_CLIENT_ID'),
+        scopes: ['email', 'profile'],
       );
 
       // Listen to auth state changes
@@ -47,8 +48,16 @@ class SupabaseClientManager {
         'user_id': user.id,
         'email': user.email,
         // Prioritize existing username/full_name, then OAuth metadata, then fallback
-        'username': existingProfile?['username'] ?? user.userMetadata?['username'] ?? user.email?.split('@').first,
-        'full_name': existingProfile?['full_name'] ?? user.userMetadata?['full_name'] ?? 'No Name',
+        'username': existingProfile?['username'] ?? 
+                   user.userMetadata?['username'] ?? 
+                   user.userMetadata?['preferred_username'] ??
+                   user.email?.split('@').first,
+        'full_name': existingProfile?['full_name'] ?? 
+                    user.userMetadata?['full_name'] ?? 
+                    user.userMetadata?['name'] ??
+                    'No Name',
+        'avatar_url': user.userMetadata?['avatar_url'] ?? 
+                     user.userMetadata?['picture'],
       };
 
       await client.from('profiles').upsert(
@@ -107,17 +116,21 @@ class SupabaseClientManager {
     }
   }
 
-  // Updated method: Sign in with Google using native Google Sign-In
+  // Native Google Sign-In implementation
   static Future<AuthResponse?> signInWithGoogle() async {
     try {
       if (_googleSignIn == null) {
         throw Exception('Google Sign-In not initialized');
       }
 
+      // Sign out any existing Google account first to ensure fresh sign-in
+      await _googleSignIn!.signOut();
+
       // Start Google Sign-In flow
       final GoogleSignInAccount? googleUser = await _googleSignIn!.signIn();
       if (googleUser == null) {
         // User cancelled the sign-in
+        print('Google sign-in cancelled by user');
         return null;
       }
 
@@ -131,6 +144,8 @@ class SupabaseClientManager {
         throw Exception('Failed to get Google auth tokens');
       }
 
+      print('✅ Got Google tokens, signing in to Supabase...');
+
       // Sign in to Supabase with Google tokens
       final AuthResponse response = await client.auth.signInWithIdToken(
         provider: OAuthProvider.google,
@@ -138,10 +153,19 @@ class SupabaseClientManager {
         accessToken: accessToken,
       );
 
-      print('✅ Google Sign-in successful');
+      if (response.user != null) {
+        print('✅ Google Sign-in successful for user: ${response.user!.email}');
+      }
+
       return response;
     } catch (e) {
       print('❌ Google Sign-in error: $e');
+      // Clean up Google sign-in state on error
+      try {
+        await _googleSignIn?.signOut();
+      } catch (signOutError) {
+        print('Error signing out of Google: $signOutError');
+      }
       rethrow;
     }
   }
@@ -151,9 +175,11 @@ class SupabaseClientManager {
       // Sign out from Google first
       if (_googleSignIn != null) {
         await _googleSignIn!.signOut();
+        await _googleSignIn!.disconnect();
       }
       // Then sign out from Supabase
       await client.auth.signOut();
+      print('✅ Successfully signed out');
     } catch (e) {
       print('❌ Signout error: $e');
       rethrow;
@@ -189,4 +215,10 @@ class SupabaseClientManager {
   }
 
   static Stream<AuthState> get authStateChanges => client.auth.onAuthStateChange;
+
+  // Helper method to get current user
+  static User? get currentUser => client.auth.currentUser;
+
+  // Helper method to check if user is signed in
+  static bool get isSignedIn => client.auth.currentUser != null;
 }

@@ -13,15 +13,30 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   List<String> _imageUrls = [];
   final ImagePicker _picker = ImagePicker();
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
     _checkAuthState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkAuthState() async {
@@ -223,42 +238,251 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+      drawer: _buildSlickDrawer(),
+    );
+  }
+
+  Widget _buildSlickDrawer() {
+    return Drawer(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.blue.shade800,
+              Colors.blue.shade900,
+              Colors.indigo.shade900,
+            ],
+          ),
+        ),
+        child: Column(
           children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.blue),
+            // Custom Header with glassmorphism effect
+            Container(
+              padding: const EdgeInsets.only(top: 40, left: 20, right: 20, bottom: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Issue Reporter',
-                    style: TextStyle(fontSize: 24, color: Colors.white),
+                  // Profile Avatar with glow effect
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [Colors.white.withOpacity(0.3), Colors.white.withOpacity(0.1)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.3),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      size: 35,
+                      color: Colors.white,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 15),
+                  
+                  // App Title with stylized text
+                  const Text(
+                    'SmartCity360',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  
+                  // User email with stream builder
                   StreamBuilder<AuthState>(
                     stream: SupabaseClientManager.client.auth.onAuthStateChange,
                     builder: (context, snapshot) {
                       final user = SupabaseClientManager.client.auth.currentUser;
-                      return Text(
-                        user?.email ?? 'Not logged in',
-                        style: const TextStyle(fontSize: 16, color: Colors.white70),
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          user?.email ?? 'Not logged in',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       );
                     },
                   ),
                 ],
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () {
-                Navigator.pop(context);
-                _logout();
-              },
+            
+            // Menu Items
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Column(
+                  children: [
+                    _buildDrawerItem(
+                      icon: Icons.home_rounded,
+                      title: 'Home',
+                      onTap: () => Navigator.pop(context),
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.report_problem_rounded,
+                      title: 'Report Issue',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Scaffold(
+                              appBar: CustomAppBar(title: 'Report Issue'),
+                              body: IssueReportForm(initialImageUrls: _imageUrls),
+                              floatingActionButton: FloatingActionButton(
+                                onPressed: _pickImage,
+                                tooltip: 'Take Photo',
+                                child: const Icon(Icons.camera_alt),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.history_rounded,
+                      title: 'History',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const Scaffold(
+                              appBar: CustomAppBar(title: 'Issue History'),
+                              body: HistoryScreen(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.settings_rounded,
+                      title: 'Settings',
+                      onTap: () {
+                        Navigator.pop(context);
+                        // Add settings navigation
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.help_outline_rounded,
+                      title: 'Help & Support',
+                      onTap: () {
+                        Navigator.pop(context);
+                        // Add help navigation
+                      },
+                    ),
+                    const Spacer(),
+                    
+                    // Logout button with special styling
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      child: _buildDrawerItem(
+                        icon: Icons.logout_rounded,
+                        title: 'Logout',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _logout();
+                        },
+                        isDestructive: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(15),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              color: isDestructive 
+                ? Colors.red.withOpacity(0.1)
+                : Colors.white.withOpacity(0.1),
+              border: Border.all(
+                color: isDestructive 
+                  ? Colors.red.withOpacity(0.3)
+                  : Colors.white.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isDestructive 
+                      ? Colors.red.withOpacity(0.2)
+                      : Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: isDestructive ? Colors.red.shade300 : Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      color: isDestructive ? Colors.red.shade300 : Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: isDestructive 
+                    ? Colors.red.shade300.withOpacity(0.6)
+                    : Colors.white.withOpacity(0.6),
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

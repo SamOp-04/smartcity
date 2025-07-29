@@ -1,17 +1,22 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import {
   PieChart, Pie, Cell, Tooltip, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer
 } from 'recharts'
 import {
   CheckCircle, Clock, AlertTriangle,
-  TrendingUp, PieChart as PieIcon
+  TrendingUp, PieChart as PieIcon, RefreshCw,
+  BarChart3, Users, Target, Calendar
 } from 'lucide-react'
 import { fetchIssues } from '../../../lib/issueApi'
 import { useRouter } from 'next/navigation'
+
 export default function ReportsPage() {
+  const [darkMode, setDarkMode] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [timeRange, setTimeRange] = useState('Daily')
   const [daily, setDaily] = useState([])
   const [weekly, setWeekly] = useState([])
@@ -19,9 +24,68 @@ export default function ReportsPage() {
   const [complaintData, setComplaintData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [, setAuthChecked] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState(null)
+  
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
+  // Initialize dark mode after component mounts (prevents hydration issues)
+  useEffect(() => {
+    setMounted(true)
+    
+    const initializeDarkMode = () => {
+      try {
+        const savedDarkMode = localStorage.getItem('darkMode')
+        
+        if (savedDarkMode !== null) {
+          setDarkMode(savedDarkMode === 'true')
+        } else {
+          // Use system preference
+          const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          setDarkMode(systemPrefersDark)
+          localStorage.setItem('darkMode', systemPrefersDark.toString())
+        }
+      } catch (error) {
+        console.error('Error initializing dark mode:', error)
+        setDarkMode(false) // Fallback to light mode
+      }
+    }
+
+    initializeDarkMode()
+  }, [])
+
+  // Apply dark mode class to document
+  useEffect(() => {
+    if (!mounted) return
+    
+    try {
+      if (darkMode) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    } catch (error) {
+      console.error('Error applying dark mode:', error)
+    }
+  }, [darkMode, mounted])
+
+  // Listen for dark mode changes from localStorage (cross-tab sync)
+  useEffect(() => {
+    if (!mounted) return
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'darkMode') {
+        setDarkMode(e.newValue === 'true')
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [mounted])
+  
+  // Authentication check - consolidated
   useEffect(() => {
     const checkUser = async () => {
       try {
@@ -68,7 +132,7 @@ export default function ReportsPage() {
     }
     
     checkUser()
-  }, [router])
+  }, [router, supabase])
 
   // Auth state change listener
   useEffect(() => {
@@ -80,8 +144,7 @@ export default function ReportsPage() {
     })
 
     return () => subscription.unsubscribe()
-  }, [router])
-
+  }, [router, supabase])
 
   // Generate trend data from real complaints
   const generateTrendData = useCallback((data) => {
@@ -143,10 +206,15 @@ export default function ReportsPage() {
   }, [])
 
   // Load real data from Supabase
-  const loadReportsData = useCallback(async () => {
+  const loadReportsData = useCallback(async (showRefreshing = false) => {
     try {
-      setLoading(true)
+      if (showRefreshing) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       setError(null)
+      
       const data = await fetchIssues()
       
       const transformedData = data.map(issue => ({
@@ -160,35 +228,32 @@ export default function ReportsPage() {
       
       setComplaintData(transformedData)
       generateTrendData(transformedData)
+      setLastUpdated(new Date())
     } catch (err) {
       console.error('Error loading reports data:', err)
       setError('Failed to load reports data. Please try again.')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }, [generateTrendData])
 
+  // Load data on component mount (only after auth is checked)
   useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true'
-    setDarkMode(savedDarkMode)
-    const interval = setInterval(() => {
-      const newDarkMode = localStorage.getItem('darkMode') === 'true'
-      if (newDarkMode !== darkMode) setDarkMode(newDarkMode)
-    }, 200)
-    return () => clearInterval(interval)
-  }, [darkMode])
+    if (authChecked) {
+      loadReportsData()
+    }
+  }, [authChecked, loadReportsData])
 
-  // Load data on component mount
-  useEffect(() => {
-    loadReportsData()
-  }, [loadReportsData])
-
+  // Calculate statistics
   const statusCount = complaintData.reduce((acc, curr) => {
     acc[curr.status] = (acc[curr.status] || 0) + 1
     return acc
   }, {})
 
   const total = complaintData.length
+  const resolvedCount = statusCount['Resolved'] || 0
+  const resolutionRate = total > 0 ? ((resolvedCount / total) * 100).toFixed(1) : 0
 
   const pieData = [
     { name: 'Resolved', value: statusCount['Resolved'] || 0 },
@@ -204,9 +269,33 @@ export default function ReportsPage() {
   const timeOptions = { Daily: daily, Weekly: weekly, Monthly: monthly }
   const currentColors = darkMode ? COLORS.dark : COLORS.light
 
+  const handleRefresh = () => {
+    loadReportsData(true)
+  }
+
+  // Don't render until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return null
+  }
+
+  if (loading && !authChecked) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className={`text-center ${darkMode ? 'text-slate-300' : 'text-gray-600'}`}>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p>Authenticating...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
         <div className={`text-center ${darkMode ? 'text-slate-300' : 'text-gray-600'}`}>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p>Loading reports data...</p>
@@ -217,14 +306,17 @@ export default function ReportsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
         <div className={`text-center ${darkMode ? 'text-slate-300' : 'text-gray-600'}`}>
-          <p className="text-red-500 mb-4">{error}</p>
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-500 mb-4 text-lg font-medium">{error}</p>
           <button 
-            onClick={loadReportsData}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            onClick={() => loadReportsData()}
+            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
           >
-            Retry
+            Try Again
           </button>
         </div>
       </div>
@@ -232,10 +324,12 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 transition-colors duration-300">
+    <div className={`min-h-screen p-4 sm:p-6 transition-colors duration-300 ${
+      darkMode ? 'bg-gray-900' : 'bg-gray-50'
+    }`}>
       {/* Header */}
       <div className="mb-8">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-start">
           <div>
             <h1 className={`text-4xl font-bold mb-2 transition-colors duration-300 ${
               darkMode 
@@ -247,21 +341,112 @@ export default function ReportsPage() {
             <p className={`transition-colors duration-300 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
               Comprehensive insights into complaint patterns and resolution metrics
             </p>
+            {lastUpdated && (
+              <p className={`text-xs mt-1 transition-colors duration-300 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Last updated: {lastUpdated.toLocaleTimeString()}
+              </p>
+            )}
           </div>
           
           <button
-            onClick={loadReportsData}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-sm font-medium transition-colors hover:scale-105 ${
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-sm font-medium transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
               darkMode 
-                ? 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600' 
+                ? 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700' 
                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
             }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh Data
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh Data'}
           </button>
+        </div>
+      </div>
+
+      {/* Summary Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Total Complaints */}
+        <div className={`rounded-2xl shadow-xl p-6 border hover:scale-105 transition-all duration-300 ${
+          darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-gray-200'
+        }`}>
+          <div className="flex items-center gap-4">
+            <div className={`p-4 rounded-xl ${
+              darkMode ? 'bg-purple-600/20 text-purple-400' : 'bg-purple-100 text-purple-600'
+            }`}>
+              <BarChart3 className="h-6 w-6" />
+            </div>
+            <div>
+              <p className={`text-sm font-medium ${darkMode ? 'text-slate-400' : 'text-gray-600'}`}>
+                Total Complaints
+              </p>
+              <p className={`text-2xl font-bold ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                {total}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Resolution Rate */}
+        <div className={`rounded-2xl shadow-xl p-6 border hover:scale-105 transition-all duration-300 ${
+          darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-gray-200'
+        }`}>
+          <div className="flex items-center gap-4">
+            <div className={`p-4 rounded-xl ${
+              darkMode ? 'bg-green-600/20 text-green-400' : 'bg-green-100 text-green-600'
+            }`}>
+              <Target className="h-6 w-6" />
+            </div>
+            <div>
+              <p className={`text-sm font-medium ${darkMode ? 'text-slate-400' : 'text-gray-600'}`}>
+                Resolution Rate
+              </p>
+              <p className={`text-2xl font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+                {resolutionRate}%
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Issues */}
+        <div className={`rounded-2xl shadow-xl p-6 border hover:scale-105 transition-all duration-300 ${
+          darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-gray-200'
+        }`}>
+          <div className="flex items-center gap-4">
+            <div className={`p-4 rounded-xl ${
+              darkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-100 text-blue-600'
+            }`}>
+              <Users className="h-6 w-6" />
+            </div>
+            <div>
+              <p className={`text-sm font-medium ${darkMode ? 'text-slate-400' : 'text-gray-600'}`}>
+                Active Issues
+              </p>
+              <p className={`text-2xl font-bold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                {(statusCount['In Progress'] || 0) + (statusCount['Assessed'] || 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* This Week */}
+        <div className={`rounded-2xl shadow-xl p-6 border hover:scale-105 transition-all duration-300 ${
+          darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-gray-200'
+        }`}>
+          <div className="flex items-center gap-4">
+            <div className={`p-4 rounded-xl ${
+              darkMode ? 'bg-orange-600/20 text-orange-400' : 'bg-orange-100 text-orange-600'
+            }`}>
+              <Calendar className="h-6 w-6" />
+            </div>
+            <div>
+              <p className={`text-sm font-medium ${darkMode ? 'text-slate-400' : 'text-gray-600'}`}>
+                This Week
+              </p>
+              <p className={`text-2xl font-bold ${darkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                {weekly.length > 0 ? weekly[weekly.length - 1]?.count || 0 : 0}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -301,8 +486,9 @@ export default function ReportsPage() {
         })}
       </div>
 
-      {/* Pie Chart Section */}
-      <div className="mb-8">
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Pie Chart Section */}
         <div className={`rounded-2xl shadow-xl border ${
           darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-gray-200'
         }`}>
@@ -320,7 +506,7 @@ export default function ReportsPage() {
           </div>
           <div className="p-6">
             {total > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
                     data={pieData}
@@ -355,10 +541,8 @@ export default function ReportsPage() {
             )}
           </div>
         </div>
-      </div>
 
-      {/* Line Chart Section */}
-      <div className="mb-8">
+        {/* Line Chart Section */}
         <div className={`rounded-2xl shadow-xl border ${
           darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-gray-200'
         }`}>
@@ -378,11 +562,11 @@ export default function ReportsPage() {
             <select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium border ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
                 darkMode 
                   ? 'bg-slate-700 text-slate-300 border-slate-600 focus:border-blue-400' 
                   : 'bg-white text-gray-700 border-gray-300 focus:border-blue-500'
-              }`}
+              } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50`}
             >
               <option value="Daily">Daily</option>
               <option value="Weekly">Weekly</option>
@@ -391,11 +575,18 @@ export default function ReportsPage() {
           </div>
           <div className="p-6">
             {timeOptions[timeRange]?.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={timeOptions[timeRange]}>
                   <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#475569' : '#e5e7eb'} />
-                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: darkMode ? '#cbd5e1' : '#6b7280' }} />
-                  <YAxis tick={{ fontSize: 12, fill: darkMode ? '#cbd5e1' : '#6b7280' }} />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 12, fill: darkMode ? '#cbd5e1' : '#6b7280' }}
+                    axisLine={{ stroke: darkMode ? '#475569' : '#e5e7eb' }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12, fill: darkMode ? '#cbd5e1' : '#6b7280' }}
+                    axisLine={{ stroke: darkMode ? '#475569' : '#e5e7eb' }}
+                  />
                   <Tooltip contentStyle={{
                     backgroundColor: darkMode ? '#1e293b' : '#ffffff',
                     border: darkMode ? '1px solid #475569' : '1px solid #e5e7eb',
@@ -408,7 +599,7 @@ export default function ReportsPage() {
                     stroke={darkMode ? '#60A5FA' : '#3B82F6'} 
                     strokeWidth={3}
                     dot={{ fill: darkMode ? '#60A5FA' : '#3B82F6', r: 4 }}
-                    activeDot={{ r: 6 }}
+                    activeDot={{ r: 6, fill: darkMode ? '#60A5FA' : '#3B82F6' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
