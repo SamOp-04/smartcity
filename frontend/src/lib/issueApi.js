@@ -16,7 +16,6 @@ export async function fetchIssues() {
   }
 }
 
-// Update issue status
 export async function updateIssueStatus(id, status) {
   try {
     const updateData = { 
