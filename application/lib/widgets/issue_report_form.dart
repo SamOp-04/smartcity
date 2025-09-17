@@ -8,6 +8,7 @@ import 'package:geocoding/geocoding.dart' as geo;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
+import '../l10n/app_localizations.dart';
 import '../supabase_client.dart';
 
 class IssueReportForm extends StatefulWidget {
@@ -25,25 +26,12 @@ class _IssueReportFormState extends State<IssueReportForm>
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _addressController = TextEditingController();
-  String _selectedCategory = 'General';
   bool _isLoading = false;
   final List<XFile> _imageFiles = [];
   final List<String> _uploadedImageUrls = [];
   LatLng? _selectedLocation;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-
-  final List<Map<String, dynamic>> _categories = [
-    {'name': 'General', 'icon': Icons.help_outline, 'color': Colors.blue},
-    {
-      'name': 'Infrastructure',
-      'icon': Icons.construction,
-      'color': Colors.orange,
-    },
-    {'name': 'Safety', 'icon': Icons.security, 'color': Colors.red},
-    {'name': 'Environment', 'icon': Icons.eco, 'color': Colors.green},
-    {'name': 'Other', 'icon': Icons.more_horiz, 'color': Colors.grey},
-  ];
 
   @override
   void initState() {
@@ -74,7 +62,7 @@ class _IssueReportFormState extends State<IssueReportForm>
   Future<Position?> _getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      _showSnackBar('Please enable location services.', SnackBarType.error);
+      _showSnackBar(AppLocalizations.of(context)!.enableLocationServices, SnackBarType.error);
       return null;
     }
 
@@ -82,14 +70,14 @@ class _IssueReportFormState extends State<IssueReportForm>
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        _showSnackBar('Location permission denied.', SnackBarType.error);
+        _showSnackBar(AppLocalizations.of(context)!.locationPermissionDenied, SnackBarType.error);
         return null;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
       _showSnackBar(
-        'Location permission permanently denied.',
+        AppLocalizations.of(context)!.locationPermissionPermanentlyDenied,
         SnackBarType.error,
       );
       return null;
@@ -129,7 +117,7 @@ class _IssueReportFormState extends State<IssueReportForm>
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        "Pin Your Location",
+                        AppLocalizations.of(context)!.pinYourLocation,
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
@@ -197,7 +185,7 @@ class _IssueReportFormState extends State<IssueReportForm>
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(outerContext),
-                      child: const Text("Cancel"),
+                      child: Text(AppLocalizations.of(context)!.cancel),
                     ),
                     const SizedBox(width: 8),
                     FilledButton.icon(
@@ -228,7 +216,7 @@ class _IssueReportFormState extends State<IssueReportForm>
                           }
                         } catch (e) {
                           _showSnackBar(
-                            'Error getting address: ${e.toString()}',
+                            AppLocalizations.of(context)!.errorGettingAddress(e.toString()),
                             SnackBarType.error,
                           );
                         }
@@ -236,7 +224,7 @@ class _IssueReportFormState extends State<IssueReportForm>
                         Navigator.pop(outerContext);
                       },
                       icon: const Icon(Icons.check),
-                      label: const Text("Use Location"),
+                      label: Text(AppLocalizations.of(context)!.useLocation),
                     ),
                   ],
                 ),
@@ -249,10 +237,52 @@ class _IssueReportFormState extends State<IssueReportForm>
   }
 
   Future<void> _pickImage() async {
+    _showImagePickerOptions();
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: Text(AppLocalizations.of(context)!.takePhoto),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromSource(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: Text(AppLocalizations.of(context)!.chooseFromGallery),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromSource(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.cancel),
+                title: Text(AppLocalizations.of(context)!.cancel),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImageFromSource(ImageSource source) async {
     try {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 80,
       );
 
@@ -264,7 +294,7 @@ class _IssueReportFormState extends State<IssueReportForm>
     } catch (e) {
       if (mounted) {
         _showSnackBar(
-          'Error picking image: ${e.toString()}',
+          AppLocalizations.of(context)!.errorPickingImage(e.toString()),
           SnackBarType.error,
         );
       }
@@ -397,7 +427,7 @@ Future<String?> getBackendUrlFromSupabase() async {
             'user_id': userId,
             'title': _titleController.text.trim(),
             'description': _descriptionController.text.trim(),
-            'category': _selectedCategory,
+            'category': 'General',
             'status': 'Pending',
             'image_urls': allImageUrls,
             'address': _addressController.text.trim(),
@@ -409,7 +439,7 @@ Future<String?> getBackendUrlFromSupabase() async {
         final issueId = response[0]['id'].toString();
 
         if (mounted) {
-          _showSnackBar('Issue reported successfully!', SnackBarType.success);
+          _showSnackBar(AppLocalizations.of(context)!.issueReportedSuccessfully, SnackBarType.success);
 
           // Trigger AI assessment in the background
           _triggerAssessment(issueId);
@@ -418,7 +448,6 @@ Future<String?> getBackendUrlFromSupabase() async {
           _formKey.currentState!.reset();
           setState(() {
             _imageFiles.clear();
-            _selectedCategory = 'General';
             _uploadedImageUrls.clear();
             _titleController.clear();
             _descriptionController.clear();
@@ -431,7 +460,7 @@ Future<String?> getBackendUrlFromSupabase() async {
     } catch (e) {
       if (mounted) {
         _showSnackBar(
-          'Error submitting issue: ${e.toString()}',
+          AppLocalizations.of(context)!.errorSubmittingIssue(e.toString()),
           SnackBarType.error,
         );
       }
@@ -445,6 +474,12 @@ Future<String?> getBackendUrlFromSupabase() async {
   Future<void> _removeImage(int index) async {
     setState(() {
       _imageFiles.removeAt(index);
+    });
+  }
+
+  Future<void> _removeUploadedImage(int index) async {
+    setState(() {
+      _uploadedImageUrls.removeAt(index);
     });
   }
 
@@ -534,35 +569,6 @@ Future<String?> getBackendUrlFromSupabase() async {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCategorySelector() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _categories.map((category) {
-        final isSelected = _selectedCategory == category['name'];
-        return FilterChip(
-          selected: isSelected,
-          onSelected: (selected) {
-            setState(() {
-              _selectedCategory = category['name'];
-            });
-          },
-          avatar: Icon(
-            category['icon'],
-            size: 18,
-            color: isSelected
-                ? Theme.of(context).colorScheme.onSecondaryContainer
-                : category['color'],
-          ),
-          label: Text(category['name']),
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          selectedColor: Theme.of(context).colorScheme.secondaryContainer,
-          checkmarkColor: Theme.of(context).colorScheme.onSecondaryContainer,
-        );
-      }).toList(),
     );
   }
 
@@ -687,7 +693,7 @@ Future<String?> getBackendUrlFromSupabase() async {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Images', Icons.photo_library),
+        _buildSectionHeader(AppLocalizations.of(context)!.images, Icons.photo_library),
         const SizedBox(height: 8),
         if (totalImages > 0)
           SizedBox(
@@ -700,7 +706,10 @@ Future<String?> getBackendUrlFromSupabase() async {
                   // Show uploaded images
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: _buildImageCard(_uploadedImageUrls[index]),
+                    child: _buildImageCard(
+                      _uploadedImageUrls[index],
+                      onRemove: () => _removeUploadedImage(index),
+                    ),
                   );
                 } else if (index <
                     _uploadedImageUrls.length + _imageFiles.length) {
@@ -756,7 +765,7 @@ Future<String?> getBackendUrlFromSupabase() async {
               ),
               const SizedBox(height: 8),
               Text(
-                'Add Photo',
+                AppLocalizations.of(context)!.addPhoto,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                 ),
@@ -771,7 +780,7 @@ Future<String?> getBackendUrlFromSupabase() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.grey.shade50,
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: Form(
@@ -779,15 +788,17 @@ Future<String?> getBackendUrlFromSupabase() async {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withOpacity(0.2),
-                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -795,64 +806,63 @@ Future<String?> getBackendUrlFromSupabase() async {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildSectionHeader(
-                        'Basic Information',
+                        AppLocalizations.of(context)!.basicInformation,
                         Icons.info_outline,
                       ),
                       const SizedBox(height: 16),
                       _buildTextField(
                         controller: _titleController,
-                        label: 'Issue Title',
+                        label: AppLocalizations.of(context)!.issueTitle,
                         icon: Icons.title,
                         validator: (value) => value == null || value.isEmpty
-                            ? 'Please enter a title'
+                            ? AppLocalizations.of(context)!.pleaseEnterTitle
                             : null,
                       ),
                       const SizedBox(height: 16),
                       _buildTextField(
                         controller: _descriptionController,
-                        label: 'Description',
+                        label: AppLocalizations.of(context)!.description,
                         icon: Icons.description,
                         maxLines: 4,
                         validator: (value) => value == null || value.isEmpty
-                            ? 'Please enter a description'
+                            ? AppLocalizations.of(context)!.pleaseEnterDescription
                             : null,
                       ),
                       const SizedBox(height: 20),
-                      _buildSectionHeader('Category', Icons.category),
-                      const SizedBox(height: 12),
-                      _buildCategorySelector(),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withOpacity(0.2),
-                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSectionHeader('Location', Icons.location_on),
+                      _buildSectionHeader(AppLocalizations.of(context)!.location, Icons.location_on),
                       const SizedBox(height: 16),
                       Row(
                         children: [
                           Expanded(
                             child: _buildTextField(
                               controller: _addressController,
-                              label: 'Address or Landmark',
+                              label: AppLocalizations.of(context)!.addressOrLandmark,
                               icon: Icons.location_on,
                               validator: (value) =>
                                   value == null || value.isEmpty
-                                  ? 'Please enter an address'
+                                  ? AppLocalizations.of(context)!.pleaseEnterAddress
                                   : null,
                             ),
                           ),
@@ -860,7 +870,14 @@ Future<String?> getBackendUrlFromSupabase() async {
                           FilledButton.tonalIcon(
                             onPressed: _pinAndFetchAddress,
                             icon: const Icon(Icons.pin_drop),
-                            label: const Text('Pin'),
+                            label: Text(AppLocalizations.of(context)!.pin),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.blue.shade100,
+                              foregroundColor: Colors.blue.shade700,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -869,15 +886,17 @@ Future<String?> getBackendUrlFromSupabase() async {
                 ),
               ),
               const SizedBox(height: 20),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withOpacity(0.2),
-                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -895,32 +914,32 @@ Future<String?> getBackendUrlFromSupabase() async {
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      )
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.white,
+                    ),
+                  ),
+                )
                     : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.send),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Submit Report',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ],
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.send),
+                    const SizedBox(width: 8),
+                    Text(
+                      AppLocalizations.of(context)!.submitReport,
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
                       ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
             ],
@@ -930,5 +949,4 @@ Future<String?> getBackendUrlFromSupabase() async {
     );
   }
 }
-
 enum SnackBarType { success, error, warning }

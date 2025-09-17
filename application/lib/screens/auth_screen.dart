@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../l10n/app_localizations.dart';
 import '../supabase_client.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -57,15 +58,15 @@ class _AuthScreenState extends State<AuthScreen> {
       strengthText = '';
     } else if (password.length < 6) {
       strength = 0.2;
-      strengthText = 'Too short';
+      strengthText = AppLocalizations.of(context)!.tooShort;
       strengthColor = Colors.red;
     } else if (password.length < 8) {
       strength = 0.4;
-      strengthText = 'Weak';
+      strengthText = AppLocalizations.of(context)!.weak;
       strengthColor = Colors.orange;
     } else {
       strength = 0.6;
-      strengthText = 'Good';
+      strengthText = AppLocalizations.of(context)!.good;
       strengthColor = Colors.amber;
 
       // Check for additional criteria
@@ -75,7 +76,7 @@ class _AuthScreenState extends State<AuthScreen> {
       if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength += 0.1;
 
       if (strength >= 0.8) {
-        strengthText = 'Strong';
+        strengthText = AppLocalizations.of(context)!.strong;
         strengthColor = Colors.green;
       }
     }
@@ -93,7 +94,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     if (!_isLogin && !_agreedToTerms) {
-      _showErrorMessage('Please agree to the Terms of Service and Privacy Policy');
+      _showErrorMessage(AppLocalizations.of(context)!.pleaseAgreeTerms);
       return;
     }
 
@@ -112,13 +113,13 @@ class _AuthScreenState extends State<AuthScreen> {
 
         if (response.user == null) {
           if (mounted) {
-            _showErrorMessage('Login failed. Please check your credentials.');
+            _showErrorMessage(AppLocalizations.of(context)!.loginFailed);
           }
           return;
         }
 
         if (mounted) {
-          _showSuccessMessage('Welcome back!');
+          _showSuccessMessage(AppLocalizations.of(context)!.welcomeBackMessage);
           await Future.delayed(const Duration(milliseconds: 1500));
           Navigator.pushReplacementNamed(context, '/home');
         }
@@ -370,7 +371,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
                     // Welcome text
                     Text(
-                      _isLogin ? 'Welcome Back!' : 'Create Account',
+                      _isLogin ? AppLocalizations.of(context)!.welcomeBack : AppLocalizations.of(context)!.createAccount,
                       style: theme.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onSurface,
@@ -380,8 +381,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: 8),
                     Text(
                       _isLogin
-                          ? 'Sign in to continue to your account'
-                          : 'Join us and start your journey',
+                          ? AppLocalizations.of(context)!.signInToContinue
+                          : AppLocalizations.of(context)!.joinUsStartJourney,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: colorScheme.onSurface.withOpacity(0.7),
                       ),
@@ -393,7 +394,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     if (!_isLogin) ...[
                       _buildTextField(
                         controller: _usernameController,
-                        labelText: 'Username',
+                        labelText: AppLocalizations.of(context)!.username,
                         prefixIcon: Icons.person,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -411,7 +412,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       const SizedBox(height: 16),
                       _buildTextField(
                         controller: _fullNameController,
-                        labelText: 'Full Name',
+                        labelText: AppLocalizations.of(context)!.fullName,
                         prefixIcon: Icons.person_outline,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -429,7 +430,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     // Email field
                     _buildTextField(
                       controller: _emailController,
-                      labelText: 'Email',
+                      labelText: AppLocalizations.of(context)!.email,
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
@@ -447,7 +448,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     // Password field with strength indicator
                     _buildTextField(
                       controller: _passwordController,
-                      labelText: 'Password',
+                      labelText: AppLocalizations.of(context)!.password,
                       prefixIcon: Icons.lock_outline,
                       obscureText: _obscurePassword,
                       suffixIcon: IconButton(
@@ -510,12 +511,12 @@ class _AuthScreenState extends State<AuthScreen> {
                             },
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                           ),
-                          const Text('Remember me'),
+                          Text(AppLocalizations.of(context)!.rememberMe),
                           const Spacer(),
                           TextButton(
                             onPressed: _showForgotPasswordDialog,
                             child: Text(
-                              'Forgot Password?',
+                              AppLocalizations.of(context)!.forgotPassword,
                               style: TextStyle(color: colorScheme.primary),
                             ),
                           ),
@@ -605,7 +606,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           borderRadius: BorderRadius.circular(12),
                           child: Center(
                             child: Text(
-                              _isLogin ? 'Sign In' : 'Create Account',
+                              _isLogin ? AppLocalizations.of(context)!.signIn : AppLocalizations.of(context)!.createAccount,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -635,8 +636,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           label: Text(
                             _isLogin
-                                ? 'Don\'t have an account? Sign up'
-                                : 'Already have an account? Sign in',
+                                ? AppLocalizations.of(context)!.dontHaveAccount
+                                : AppLocalizations.of(context)!.alreadyHaveAccount,
                             style: const TextStyle(color: Color(0xFF1976D2)),
                           ),
                         ),
@@ -671,7 +672,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               border: Border.all(color: const Color(0xFF2196F3).withOpacity(0.3)),
                             ),
                             child: Text(
-                              'or continue with',
+                              AppLocalizations.of(context)!.orContinueWith,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: const Color(0xFF1976D2),
                                 fontWeight: FontWeight.w500,

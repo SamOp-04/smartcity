@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/issue_report_form.dart';
 import '../supabase_client.dart';
 import '../screens/history_screen.dart';
+import '../providers/language_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -84,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
 
         if (mounted) {
-          _showSnackBar('📸 Image uploaded successfully!', isSuccess: true);
+          _showSnackBar(AppLocalizations.of(context)!.imageUploadedSuccessfully, isSuccess: true);
         }
       }
     } catch (e) {
@@ -153,21 +156,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       drawer: _buildModernDrawer(),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isLoading ? null : _pickImage,
-        icon: _isLoading
-            ? const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-        )
-            : const Icon(Icons.camera_alt_rounded),
-        label: Text(_isLoading ? 'Uploading...' : 'Quick Report'),
-        backgroundColor: Colors.blue.shade600,
-        foregroundColor: Colors.white,
-        elevation: 8,
-        heroTag: "quickReport",
-      ),
     );
   }
 
@@ -186,9 +174,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: const Icon(Icons.location_city, color: Colors.white, size: 20),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'SmartCity360',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          Text(
+            AppLocalizations.of(context)!.smartCity360,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
         ],
       ),
@@ -259,9 +247,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Good Morning! 👋',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.goodMorning,
+                      style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -273,9 +261,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       builder: (context, snapshot) {
                         final user = SupabaseClientManager.client.auth.currentUser;
                         final name = user?.userMetadata?['full_name'] ??
-                            user?.email?.split('@')[0] ?? 'Citizen';
+                            user?.email?.split('@')[0] ?? AppLocalizations.of(context)!.citizen;
                         return Text(
-                          'Welcome back, $name',
+                          '${AppLocalizations.of(context)!.welcomeBackUser}, $name',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 24,
@@ -303,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            'Help make your city better by reporting issues and tracking improvements in your community.',
+            AppLocalizations.of(context)!.helpMakeCityBetter,
             style: TextStyle(
               color: Colors.white.withOpacity(0.9),
               fontSize: 16,
@@ -324,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 16),
             child: Text(
-              'Quick Actions',
+              AppLocalizations.of(context)!.quickActions,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -336,8 +324,8 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: _buildActionCard(
-                  title: 'Report Issue',
-                  subtitle: 'Report a new problem',
+                  title: AppLocalizations.of(context)!.reportIssue,
+                  subtitle: AppLocalizations.of(context)!.reportNewProblem,
                   icon: Icons.add_circle_outline,
                   color: Colors.red.shade600,
                   onTap: () => _navigateToReportIssue(),
@@ -346,8 +334,8 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildActionCard(
-                  title: 'View History',
-                  subtitle: 'Check your reports',
+                  title: AppLocalizations.of(context)!.viewHistory,
+                  subtitle: AppLocalizations.of(context)!.checkYourReports,
                   icon: Icons.history_rounded,
                   color: Colors.blue.shade600,
                   onTap: () => _navigateToHistory(),
@@ -360,8 +348,8 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: _buildActionCard(
-                  title: 'Emergency',
-                  subtitle: 'Report urgent issues',
+                  title: AppLocalizations.of(context)!.emergency,
+                  subtitle: AppLocalizations.of(context)!.reportUrgentIssues,
                   icon: Icons.emergency_outlined,
                   color: Colors.red.shade700,
                   onTap: () => _showEmergencyDialog(),
@@ -370,8 +358,8 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildActionCard(
-                  title: 'Help Center',
-                  subtitle: 'Get support',
+                  title: AppLocalizations.of(context)!.helpCenter,
+                  subtitle: AppLocalizations.of(context)!.getSupport,
                   icon: Icons.help_outline_rounded,
                   color: Colors.green.shade600,
                   onTap: () => _showModernHelpCenter(),
@@ -587,27 +575,28 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10),
         child: Column(
           children: [
-            _buildDrawerItem(Icons.home_rounded, 'Home', () => Navigator.pop(context)),
-            _buildDrawerItem(Icons.report_problem_rounded, 'Report Issue', () {
+            _buildDrawerItem(Icons.home_rounded, AppLocalizations.of(context)!.home, () => Navigator.pop(context)),
+            _buildDrawerItem(Icons.report_problem_rounded, AppLocalizations.of(context)!.reportIssue, () {
               Navigator.pop(context);
               _navigateToReportIssue();
             }),
-            _buildDrawerItem(Icons.history_rounded, 'History', () {
+            _buildDrawerItem(Icons.history_rounded, AppLocalizations.of(context)!.history, () {
               Navigator.pop(context);
               _navigateToHistory();
             }),
-            _buildDrawerItem(Icons.settings_rounded, 'Settings', () {
+            _buildDrawerItem(Icons.settings_rounded, AppLocalizations.of(context)!.settings, () {
               Navigator.pop(context);
               _showComingSoon('Settings');
             }),
-            _buildDrawerItem(Icons.help_outline_rounded, 'Help & Support', () {
+            _buildDrawerItem(Icons.help_outline_rounded, AppLocalizations.of(context)!.helpSupport, () {
               Navigator.pop(context);
               _showModernHelpCenter();
             }),
+            _buildLanguageToggle(),
             const SizedBox(height: 30),
             _buildDrawerItem(
               Icons.logout_rounded,
-              'Logout',
+              AppLocalizations.of(context)!.logout,
                   () {
                 Navigator.pop(context);
                 _logout();
@@ -653,6 +642,69 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLanguageToggle() {
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, child) {
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                color: Colors.white.withOpacity(0.1),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.language_rounded, color: Colors.white, size: 22),
+                  const SizedBox(width: 16),
+                  Text(
+                    AppLocalizations.of(context)!.language,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      languageProvider.changeLanguage(
+                        languageProvider.isEnglish 
+                          ? const Locale('hi') 
+                          : const Locale('en')
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.white.withOpacity(0.2),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        languageProvider.isEnglish ? 'हिंदी' : 'English',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
