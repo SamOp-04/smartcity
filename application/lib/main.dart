@@ -7,6 +7,8 @@ import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/history_screen.dart';
 import 'providers/language_provider.dart';
+import 'providers/voice_provider.dart';
+import 'providers/notification_provider.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized
@@ -15,16 +17,18 @@ void main() async {
   // Initialize Supabase client
   try {
     await SupabaseClientManager.initialize();
-    print('Supabase initialized successfully');
   } catch (e) {
-    print('Failed to initialize Supabase: $e');
-    // You might want to handle this error more gracefully in production
+    // Handle error gracefully in production
   }
 
   // Run the app
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => LanguageProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => LanguageProvider()),
+        ChangeNotifierProvider(create: (context) => VoiceProvider()),
+        ChangeNotifierProvider(create: (context) => NotificationProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -39,6 +43,8 @@ class MyApp extends StatelessWidget {
       builder: (context, languageProvider, child) {
         return MaterialApp(
           title: 'Issue Reporter',
+          debugShowCheckedModeBanner: false,
+          
           locale: languageProvider.currentLocale,
           localizationsDelegates: const [
             AppLocalizations.delegate,

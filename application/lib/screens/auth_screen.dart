@@ -18,6 +18,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _passwordController = TextEditingController();
   final _usernameController = TextEditingController();
   final _fullNameController = TextEditingController();
+  final _aadharController = TextEditingController();
 
   bool _isLoading = false;
   bool _isLogin = true;
@@ -44,6 +45,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _passwordController.dispose();
     _usernameController.dispose();
     _fullNameController.dispose();
+    _aadharController.dispose();
     super.dispose();
   }
 
@@ -130,6 +132,7 @@ class _AuthScreenState extends State<AuthScreen> {
           _passwordController.text.trim(),
           username: _usernameController.text.trim(),
           fullName: _fullNameController.text.trim(),
+          aadharNumber: _aadharController.text.trim().replaceAll(' ', ''),
         );
 
         if (mounted) {
@@ -252,6 +255,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _passwordController.clear();
     _usernameController.clear();
     _fullNameController.clear();
+    _aadharController.clear();
     setState(() {
       _rememberMe = false;
       _agreedToTerms = false;
@@ -320,18 +324,10 @@ class _AuthScreenState extends State<AuthScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: Colors.white,
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.surface,
-              colorScheme.primary.withOpacity(0.05),
-              colorScheme.surface,
-            ],
-          ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
         ),
         child: SafeArea(
           child: Padding(
@@ -420,6 +416,32 @@ class _AuthScreenState extends State<AuthScreen> {
                           }
                           if (value.trim().length < 2) {
                             return 'Please enter a valid full name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _aadharController,
+                        labelText: 'Aadhar Number',
+                        prefixIcon: Icons.credit_card,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(12),
+                          AadharNumberFormatter(),
+                        ],
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your Aadhar number';
+                          }
+                          // Remove spaces for validation
+                          final cleanValue = value.replaceAll(' ', '');
+                          if (cleanValue.length != 12) {
+                            return 'Aadhar number must be 12 digits';
+                          }
+                          if (!RegExp(r'^\d{12}$').hasMatch(cleanValue)) {
+                            return 'Please enter a valid Aadhar number';
                           }
                           return null;
                         },
@@ -773,12 +795,14 @@ class _AuthScreenState extends State<AuthScreen> {
     bool obscureText = false,
     Widget? suffixIcon,
     String? Function(String?)? validator,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
       validator: validator,
+      inputFormatters: inputFormatters,
       onTap: () => HapticFeedback.selectionClick(),
       decoration: InputDecoration(
         labelText: labelText,
@@ -854,5 +878,34 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
       ),
     );
+  }
+}
+
+class AadharNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final newText = newValue.text.replaceAll(' ', '');
+    if (newText.length <= 12) {
+      final formatted = _formatAadhar(newText);
+      return TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+    return oldValue;
+  }
+
+  String _formatAadhar(String input) {
+    final buffer = StringBuffer();
+    for (int i = 0; i < input.length; i++) {
+      buffer.write(input[i]);
+      if ((i + 1) % 4 == 0 && i != input.length - 1) {
+        buffer.write(' ');
+      }
+    }
+    return buffer.toString();
   }
 }

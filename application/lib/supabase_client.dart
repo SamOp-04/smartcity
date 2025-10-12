@@ -29,9 +29,7 @@ class SupabaseClientManager {
         }
       });
 
-      print('✅ Supabase initialized');
     } catch (e) {
-      print('❌ Error initializing Supabase: $e');
       rethrow;
     }
   }
@@ -65,9 +63,8 @@ class SupabaseClientManager {
         onConflict: 'user_id',
       );
 
-      print('✅ Profile upserted for user ${user.id}');
     } catch (e) {
-      print('❌ Error in _createOrUpdateUserProfile: $e');
+      // Error in profile creation
       rethrow;
     }
   }
@@ -77,11 +74,13 @@ class SupabaseClientManager {
       String password, {
         String? username,
         String? fullName,
+        String? aadharNumber,
       }) async {
     try {
       final metadata = <String, dynamic>{
         if (username != null) 'username': username,
         if (fullName != null) 'full_name': fullName,
+        if (aadharNumber != null) 'aadhar_number': aadharNumber,
       };
 
       final response = await client.auth.signUp(
@@ -97,7 +96,7 @@ class SupabaseClientManager {
 
       return response;
     } catch (e) {
-      print('❌ Signup error: $e');
+      // Signup error
       rethrow;
     }
   }
@@ -111,7 +110,7 @@ class SupabaseClientManager {
       // Profile creation/update is handled by the onAuthStateChange listener
       return response;
     } catch (e) {
-      print('❌ Signin error: $e');
+      // Signin error
       rethrow;
     }
   }
@@ -130,7 +129,7 @@ class SupabaseClientManager {
       final GoogleSignInAccount? googleUser = await _googleSignIn!.signIn();
       if (googleUser == null) {
         // User cancelled the sign-in
-        print('Google sign-in cancelled by user');
+        // User cancelled the sign-in
         return null;
       }
 
@@ -144,7 +143,7 @@ class SupabaseClientManager {
         throw Exception('Failed to get Google auth tokens');
       }
 
-      print('✅ Got Google tokens, signing in to Supabase...');
+
 
       // Sign in to Supabase with Google tokens
       final AuthResponse response = await client.auth.signInWithIdToken(
@@ -153,18 +152,15 @@ class SupabaseClientManager {
         accessToken: accessToken,
       );
 
-      if (response.user != null) {
-        print('✅ Google Sign-in successful for user: ${response.user!.email}');
-      }
+
 
       return response;
     } catch (e) {
-      print('❌ Google Sign-in error: $e');
       // Clean up Google sign-in state on error
       try {
         await _googleSignIn?.signOut();
       } catch (signOutError) {
-        print('Error signing out of Google: $signOutError');
+        // Error signing out of Google
       }
       rethrow;
     }
@@ -179,9 +175,7 @@ class SupabaseClientManager {
       }
       // Then sign out from Supabase
       await client.auth.signOut();
-      print('✅ Successfully signed out');
     } catch (e) {
-      print('❌ Signout error: $e');
       rethrow;
     }
   }
@@ -209,7 +203,7 @@ class SupabaseClientManager {
     try {
       await client.from('profiles').update(updates).eq('user_id', userId);
     } catch (e) {
-      print('❌ Error in updateUserProfile: $e');
+      // Error in updateUserProfile
       rethrow;
     }
   }
