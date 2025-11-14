@@ -1,0 +1,713 @@
+{
+  "@@locale": "en",
+  "appTitle": "Issue Reporter",
+  "@appTitle": {
+    "description": "Title of the application"
+  },
+  "home": "Home",
+  "@home": {
+    "description": "Home menu item"
+  },
+  "reportIssue": "Report Issue",
+  "@reportIssue": {
+    "description": "Report Issue menu item"
+  },
+  "history": "History",
+  "@history": {
+    "description": "History menu item"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings menu item"
+  },
+  "helpSupport": "Help & Support",
+  "@helpSupport": {
+    "description": "Help and Support menu item"
+  },
+  "logout": "Logout",
+  "@logout": {
+    "description": "Logout menu item"
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Language selection"
+  },
+  "english": "English",
+  "@english": {
+    "description": "English language option"
+  },
+  "hindi": "हिंदी",
+  "@hindi": {
+    "description": "Hindi language option"
+  },
+  "issues": "Issues",
+  "@issues": {
+    "description": "Issues title"
+  },
+  "searchIssues": "Search issues",
+  "@searchIssues": {
+    "description": "Search issues placeholder"
+  },
+  "newest": "Newest",
+  "@newest": {
+    "description": "Newest filter option"
+  },
+  "nearest": "Nearest",
+  "@nearest": {
+    "description": "Nearest filter option"
+  },
+  "category": "Category",
+  "@category": {
+    "description": "Category label"
+  },
+  "selectCategory": "Select Category",
+  "@selectCategory": {
+    "description": "Select category placeholder"
+  },
+  "description": "Description",
+  "@description": {
+    "description": "Description label"
+  },
+  "describeIssue": "Describe the issue",
+  "@describeIssue": {
+    "description": "Describe issue placeholder"
+  },
+  "location": "Location",
+  "@location": {
+    "description": "Location label"
+  },
+  "potholeMainRoad": "Pothole on main road",
+  "@potholeMainRoad": {
+    "description": "Example issue title"
+  },
+  "brokenStreetlight": "Broken streetlight",
+  "@brokenStreetlight": {
+    "description": "Example issue title"
+  },
+  "open": "Open",
+  "@open": {
+    "description": "Open status"
+  },
+  "inProgress": "In Progress",
+  "@inProgress": {
+    "description": "In progress status"
+  },
+  "resolved": "Resolved",
+  "@resolved": {
+    "description": "Resolved status"
+  },
+  "trackReport": "Track Report",
+  "@trackReport": {
+    "description": "Track report title"
+  },
+  "reportSubmitted": "Report Submitted",
+  "@reportSubmitted": {
+    "description": "Report submitted status"
+  },
+  "viewResolutionProof": "View Resolution Proof",
+  "@viewResolutionProof": {
+    "description": "View resolution proof button"
+  },
+  "welcomeBack": "Welcome Back!",
+  "@welcomeBack": {
+    "description": "Welcome back title for login"
+  },
+  "createAccount": "Create Account",
+  "@createAccount": {
+    "description": "Create account title for signup"
+  },
+  "signInToContinue": "Sign in to continue to your account",
+  "@signInToContinue": {
+    "description": "Login subtitle"
+  },
+  "joinUsStartJourney": "Join us and start your journey",
+  "@joinUsStartJourney": {
+    "description": "Signup subtitle"
+  },
+  "username": "Username",
+  "@username": {
+    "description": "Username field label"
+  },
+  "fullName": "Full Name",
+  "@fullName": {
+    "description": "Full name field label"
+  },
+  "email": "Email",
+  "@email": {
+    "description": "Email field label"
+  },
+  "password": "Password",
+  "@password": {
+    "description": "Password field label"
+  },
+  "rememberMe": "Remember me",
+  "@rememberMe": {
+    "description": "Remember me checkbox"
+  },
+  "forgotPassword": "Forgot Password?",
+  "@forgotPassword": {
+    "description": "Forgot password link"
+  },
+  "agreeToTerms": "I agree to the ",
+  "@agreeToTerms": {
+    "description": "Terms agreement text prefix"
+  },
+  "termsOfService": "Terms of Service",
+  "@termsOfService": {
+    "description": "Terms of service link"
+  },
+  "and": " and ",
+  "@and": {
+    "description": "And conjunction"
+  },
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": {
+    "description": "Privacy policy link"
+  },
+  "signIn": "Sign In",
+  "@signIn": {
+    "description": "Sign in button"
+  },
+  "dontHaveAccount": "Don't have an account? Sign up",
+  "@dontHaveAccount": {
+    "description": "Don't have account text"
+  },
+  "alreadyHaveAccount": "Already have an account? Sign in",
+  "@alreadyHaveAccount": {
+    "description": "Already have account text"
+  },
+  "orContinueWith": "or continue with",
+  "@orContinueWith": {
+    "description": "Social login separator"
+  },
+  "google": "Google",
+  "@google": {
+    "description": "Google sign in"
+  },
+  "smartCity360": "SmartCity360",
+  "@smartCity360": {
+    "description": "App name"
+  },
+  "goodMorning": "Good Morning! 👋",
+  "@goodMorning": {
+    "description": "Good morning greeting"
+  },
+  "welcomeBackUser": "Welcome back",
+  "@welcomeBackUser": {
+    "description": "Welcome back with user name"
+  },
+  "citizen": "Citizen",
+  "@citizen": {
+    "description": "Default citizen name"
+  },
+  "helpMakeCityBetter": "Help make your city better by reporting issues and tracking improvements in your community.",
+  "@helpMakeCityBetter": {
+    "description": "App description"
+  },
+  "quickActions": "Quick Actions",
+  "@quickActions": {
+    "description": "Quick actions section title"
+  },
+  "reportNewProblem": "Report a new problem",
+  "@reportNewProblem": {
+    "description": "Report issue subtitle"
+  },
+  "viewHistory": "View History",
+  "@viewHistory": {
+    "description": "View history action"
+  },
+  "checkYourReports": "Check your reports",
+  "@checkYourReports": {
+    "description": "Check reports subtitle"
+  },
+  "emergency": "Emergency",
+  "@emergency": {
+    "description": "Emergency action"
+  },
+  "reportUrgentIssues": "Report urgent issues",
+  "@reportUrgentIssues": {
+    "description": "Emergency subtitle"
+  },
+  "helpCenter": "Help Center",
+  "@helpCenter": {
+    "description": "Help center action"
+  },
+  "getSupport": "Get support",
+  "@getSupport": {
+    "description": "Get support subtitle"
+  },
+  "uploading": "Uploading...",
+  "@uploading": {
+    "description": "Uploading status"
+  },
+  "quickReport": "Quick Report",
+  "@quickReport": {
+    "description": "Quick report button"
+  },
+  "takePhoto": "Take Photo",
+  "@takePhoto": {
+    "description": "Take photo tooltip"
+  },
+  "issueHistory": "Issue History",
+  "@issueHistory": {
+    "description": "Issue history title"
+  },
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications title"
+  },
+  "potholeFixed": "Pothole on Main St has been fixed! 🎉",
+  "@potholeFixed": {
+    "description": "Pothole fixed notification"
+  },
+  "fiveMinAgo": "5 min ago",
+  "@fiveMinAgo": {
+    "description": "5 minutes ago"
+  },
+  "newCommunityUpdate": "New community update available",
+  "@newCommunityUpdate": {
+    "description": "Community update notification"
+  },
+  "oneHourAgo": "1 hour ago",
+  "@oneHourAgo": {
+    "description": "1 hour ago"
+  },
+  "reportUnderReview": "Your report #1234 is under review",
+  "@reportUnderReview": {
+    "description": "Report under review notification"
+  },
+  "twoHoursAgo": "2 hours ago",
+  "@twoHoursAgo": {
+    "description": "2 hours ago"
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Close button"
+  },
+  "emergencyReport": "Emergency Report",
+  "@emergencyReport": {
+    "description": "Emergency report title"
+  },
+  "emergencyWarning": "For life-threatening emergencies, please call 911 immediately.\\n\\nUse this feature only for urgent city infrastructure issues that pose immediate safety risks.",
+  "@emergencyWarning": {
+    "description": "Emergency warning text"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button"
+  },
+  "reportEmergency": "Report Emergency",
+  "@reportEmergency": {
+    "description": "Report emergency button"
+  },
+  "helpSupportCenter": "Help & Support Center",
+  "@helpSupportCenter": {
+    "description": "Help support center title"
+  },
+  "hereToHelp247": "We're here to help you 24/7",
+  "@hereToHelp247": {
+    "description": "Help center subtitle"
+  },
+  "liveChatSupport": "Live Chat Support",
+  "@liveChatSupport": {
+    "description": "Live chat support"
+  },
+  "chatWithSupportTeam": "Chat with our support team",
+  "@chatWithSupportTeam": {
+    "description": "Chat support subtitle"
+  },
+  "callSupport": "Call Support",
+  "@callSupport": {
+    "description": "Call support"
+  },
+  "speakWithRepresentative": "Speak with a representative",
+  "@speakWithRepresentative": {
+    "description": "Call support subtitle"
+  },
+  "emailSupport": "Email Support",
+  "@emailSupport": {
+    "description": "Email support"
+  },
+  "sendUsQuestions": "Send us your questions",
+  "@sendUsQuestions": {
+    "description": "Email support subtitle"
+  },
+  "resources": "Resources",
+  "@resources": {
+    "description": "Resources section"
+  },
+  "userGuide": "User Guide",
+  "@userGuide": {
+    "description": "User guide"
+  },
+  "learnHowToUse": "Learn how to use SmartCity360",
+  "@learnHowToUse": {
+    "description": "User guide subtitle"
+  },
+  "videoTutorials": "Video Tutorials",
+  "@videoTutorials": {
+    "description": "Video tutorials"
+  },
+  "watchStepByStep": "Watch step-by-step guides",
+  "@watchStepByStep": {
+    "description": "Video tutorials subtitle"
+  },
+  "faqs": "FAQs",
+  "@faqs": {
+    "description": "FAQs"
+  },
+  "findAnswersCommon": "Find answers to common questions",
+  "@findAnswersCommon": {
+    "description": "FAQs subtitle"
+  },
+  "emergencyInformation": "Emergency Information",
+  "@emergencyInformation": {
+    "description": "Emergency information"
+  },
+  "police": "Police",
+  "@police": {
+    "description": "Police"
+  },
+  "fireDept": "Fire Dept",
+  "@fireDept": {
+    "description": "Fire department"
+  },
+  "comingSoon": "Coming Soon",
+  "@comingSoon": {
+    "description": "Coming soon"
+  },
+  "featureComingSoon": "{feature} feature is coming soon! Stay tuned for updates.",
+  "@featureComingSoon": {
+    "description": "Feature coming soon message",
+    "placeholders": {
+      "feature": {
+        "type": "String",
+        "description": "Feature name"
+      }
+    }
+  },
+  "ok": "OK",
+  "@ok": {
+    "description": "OK button"
+  },
+  "general": "General",
+  "@general": {
+    "description": "General category"
+  },
+  "infrastructure": "Infrastructure",
+  "@infrastructure": {
+    "description": "Infrastructure category"
+  },
+  "safety": "Safety",
+  "@safety": {
+    "description": "Safety category"
+  },
+  "environment": "Environment",
+  "@environment": {
+    "description": "Environment category"
+  },
+  "other": "Other",
+  "@other": {
+    "description": "Other category"
+  },
+  "pinYourLocation": "Pin Your Location",
+  "@pinYourLocation": {
+    "description": "Pin location title"
+  },
+  "useLocation": "Use Location",
+  "@useLocation": {
+    "description": "Use location button"
+  },
+  "resetPassword": "Reset Password",
+  "@resetPassword": {
+    "description": "Reset password title"
+  },
+  "resetPasswordInstructions": "Enter your email address and we'll send you a link to reset your password.",
+  "@resetPasswordInstructions": {
+    "description": "Reset password instructions"
+  },
+  "sendResetLink": "Send Reset Link",
+  "@sendResetLink": {
+    "description": "Send reset link button"
+  },
+  "tooShort": "Too short",
+  "@tooShort": {
+    "description": "Password too short"
+  },
+  "weak": "Weak",
+  "@weak": {
+    "description": "Weak password"
+  },
+  "good": "Good",
+  "@good": {
+    "description": "Good password"
+  },
+  "strong": "Strong",
+  "@strong": {
+    "description": "Strong password"
+  },
+  "pleaseEnterUsername": "Please enter a username",
+  "@pleaseEnterUsername": {
+    "description": "Username validation"
+  },
+  "usernameMinLength": "Username must be at least 3 characters",
+  "@usernameMinLength": {
+    "description": "Username minimum length"
+  },
+  "usernameInvalidChars": "Username can only contain letters, numbers, and underscores",
+  "@usernameInvalidChars": {
+    "description": "Username invalid characters"
+  },
+  "pleaseEnterFullName": "Please enter your full name",
+  "@pleaseEnterFullName": {
+    "description": "Full name validation"
+  },
+  "pleaseEnterValidName": "Please enter a valid full name",
+  "@pleaseEnterValidName": {
+    "description": "Valid full name validation"
+  },
+  "pleaseEnterEmail": "Please enter your email",
+  "@pleaseEnterEmail": {
+    "description": "Email validation"
+  },
+  "pleaseEnterValidEmail": "Please enter a valid email address",
+  "@pleaseEnterValidEmail": {
+    "description": "Valid email validation"
+  },
+  "pleaseEnterPassword": "Please enter your password",
+  "@pleaseEnterPassword": {
+    "description": "Password validation"
+  },
+  "passwordMinLength": "Password must be at least 6 characters",
+  "@passwordMinLength": {
+    "description": "Password minimum length"
+  },
+  "passwordRecommendedLength": "Password should be at least 8 characters for better security",
+  "@passwordRecommendedLength": {
+    "description": "Password recommended length"
+  },
+  "pleaseAgreeTerms": "Please agree to the Terms of Service and Privacy Policy",
+  "@pleaseAgreeTerms": {
+    "description": "Terms agreement validation"
+  },
+  "loginFailed": "Login failed. Please check your credentials.",
+  "@loginFailed": {
+    "description": "Login failed message"
+  },
+  "welcomeBackMessage": "Welcome back!",
+  "@welcomeBackMessage": {
+    "description": "Welcome back success message"
+  },
+  "accountCreated": "Account created! Please check your email to confirm your account.",
+  "@accountCreated": {
+    "description": "Account created message"
+  },
+  "unexpectedError": "An unexpected error occurred. Please try again.",
+  "@unexpectedError": {
+    "description": "Unexpected error message"
+  },
+  "googleSignInSuccess": "Successfully signed in with Google!",
+  "@googleSignInSuccess": {
+    "description": "Google sign in success"
+  },
+  "googleSignInCancelled": "Google sign-in was cancelled",
+  "@googleSignInCancelled": {
+    "description": "Google sign in cancelled"
+  },
+  "googleSignInFailed": "Google sign-in failed. Please try again.",
+  "@googleSignInFailed": {
+    "description": "Google sign in failed"
+  },
+  "passwordResetSent": "Password reset link sent to your email!",
+  "@passwordResetSent": {
+    "description": "Password reset sent message"
+  },
+  "resetEmailFailed": "Failed to send reset email. Please try again.",
+  "@resetEmailFailed": {
+    "description": "Reset email failed message"
+  },
+  "invalidCredentials": "Invalid email or password. Please try again.",
+  "@invalidCredentials": {
+    "description": "Invalid credentials error"
+  },
+  "emailAlreadyExists": "An account with this email already exists.",
+  "@emailAlreadyExists": {
+    "description": "Email already exists error"
+  },
+  "weakPasswordError": "Password is too weak. Please choose a stronger password.",
+  "@weakPasswordError": {
+    "description": "Weak password error"
+  },
+  "invalidEmailError": "Please enter a valid email address.",
+  "@invalidEmailError": {
+    "description": "Invalid email error"
+  },
+  "signupDisabled": "New account creation is currently disabled.",
+  "@signupDisabled": {
+    "description": "Signup disabled error"
+  },
+  "locationPermissionDenied": "Location permission denied.",
+  "@locationPermissionDenied": {
+    "description": "Location permission denied"
+  },
+  "locationPermissionPermanentlyDenied": "Location permission permanently denied.",
+  "@locationPermissionPermanentlyDenied": {
+    "description": "Location permission permanently denied"
+  },
+  "enableLocationServices": "Please enable location services.",
+  "@enableLocationServices": {
+    "description": "Enable location services"
+  },
+  "imageUploadedSuccessfully": "📸 Image uploaded successfully!",
+  "@imageUploadedSuccessfully": {
+    "description": "Image uploaded successfully"
+  },
+  "errorUploadingImage": "Error uploading image: {error}",
+  "@errorUploadingImage": {
+    "description": "Error uploading image",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message"
+      }
+    }
+  },
+  "logoutError": "Logout error: {error}",
+  "@logoutError": {
+    "description": "Logout error",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message"
+      }
+    }
+  },
+  "unexpectedLogoutError": "An unexpected error occurred during logout",
+  "@unexpectedLogoutError": {
+    "description": "Unexpected logout error"
+  },
+  "notLoggedIn": "Not logged in",
+  "@notLoggedIn": {
+    "description": "Not logged in status"
+  },
+  "errorPickingImage": "Error picking image: {error}",
+  "@errorPickingImage": {
+    "description": "Error picking image",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message"
+      }
+    }
+  },
+  "errorGettingAddress": "Error getting address: {error}",
+  "@errorGettingAddress": {
+    "description": "Error getting address",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message"
+      }
+    }
+  },
+  "pinYourLocation": "Pin Your Location",
+  "@pinYourLocation": {
+    "description": "Pin your location dialog title"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button"
+  },
+  "useLocation": "Use Location",
+  "@useLocation": {
+    "description": "Use location button"
+  },
+  "takePhoto": "Take Photo",
+  "@takePhoto": {
+    "description": "Take photo option"
+  },
+  "chooseFromGallery": "Choose from Gallery",
+  "@chooseFromGallery": {
+    "description": "Choose from gallery option"
+  },
+  "enableLocationServices": "Please enable location services.",
+  "@enableLocationServices": {
+    "description": "Enable location services message"
+  },
+  "locationPermissionDenied": "Location permission denied.",
+  "@locationPermissionDenied": {
+    "description": "Location permission denied message"
+  },
+  "locationPermissionPermanentlyDenied": "Location permission permanently denied.",
+  "@locationPermissionPermanentlyDenied": {
+    "description": "Location permission permanently denied message"
+  },
+  "errorPickingImage": "Error picking image: {error}",
+  "@errorPickingImage": {
+    "description": "Error picking image",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message"
+      }
+    }
+  },
+  "userNotAuthenticated": "User not authenticated",
+  "@userNotAuthenticated": {
+    "description": "User not authenticated error"
+  },
+  "issueReportedSuccessfully": "Issue reported successfully!",
+  "@issueReportedSuccessfully": {
+    "description": "Issue reported successfully message"
+  },
+  "errorSubmittingIssue": "Error submitting issue: {error}",
+  "@errorSubmittingIssue": {
+    "description": "Error submitting issue",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message"
+      }
+    }
+  },
+  "issueTitle": "Issue Title",
+  "@issueTitle": {
+    "description": "Issue title field label"
+  },
+  "pleaseEnterTitle": "Please enter a title",
+  "@pleaseEnterTitle": {
+    "description": "Please enter title validation message"
+  },
+  "pleaseEnterDescription": "Please enter a description",
+  "@pleaseEnterDescription": {
+    "description": "Please enter description validation message"
+  },
+  "addressOrLandmark": "Address or Landmark",
+  "@addressOrLandmark": {
+    "description": "Address or landmark field label"
+  },
+  "pleaseEnterAddress": "Please enter an address",
+  "@pleaseEnterAddress": {
+    "description": "Please enter address validation message"
+  },
+  "pin": "Pin",
+  "@pin": {
+    "description": "Pin button label"
+  },
+  "addPhoto": "Add Photo",
+  "@addPhoto": {
+    "description": "Add photo button label"
+  },
+  "basicInformation": "Basic Information",
+  "@basicInformation": {
+    "description": "Basic information section title"
+  },
+  "images": "Images",
+  "@images": {
+    "description": "Images section title"
+  },
+  "submitReport": "Submit Report",
+  "@submitReport": {
+    "description": "Submit report button"
+  }
+}

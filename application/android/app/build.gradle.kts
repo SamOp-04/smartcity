@@ -1,26 +1,25 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
-    namespace = "com.example.smartcity" // ✅ Correct namespace
+    namespace = "com.example.smartcity"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "29.0.13599879"         // ✅ Moved here once
+    ndkVersion = "29.0.13599879"
 
-    compileOptions {
+compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
-
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
     defaultConfig {
-        applicationId = "com.example.smartcity" // ✅ Matches namespace
+        applicationId = "com.example.smartcity"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -29,11 +28,15 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    // Add core library desugaring dependency (module-level)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2")
+
 }
 
 flutter {

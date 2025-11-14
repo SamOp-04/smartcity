@@ -8,12 +8,21 @@ import 'package:geocoding/geocoding.dart' as geo;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../supabase_client.dart';
+import '../providers/notification_provider.dart';
+import 'voice_input_widget.dart';
 
 class IssueReportForm extends StatefulWidget {
   final List<String>? initialImageUrls;
+  final XFile? initialImageFile;
 
-  const IssueReportForm({super.key, this.initialImageUrls});
+  const IssueReportForm({
+    super.key, 
+    this.initialImageUrls,
+    this.initialImageFile,
+  });
 
   @override
   State<IssueReportForm> createState() => _IssueReportFormState();
@@ -25,25 +34,12 @@ class _IssueReportFormState extends State<IssueReportForm>
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _addressController = TextEditingController();
-  String _selectedCategory = 'General';
   bool _isLoading = false;
   final List<XFile> _imageFiles = [];
   final List<String> _uploadedImageUrls = [];
   LatLng? _selectedLocation;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-
-  final List<Map<String, dynamic>> _categories = [
-    {'name': 'General', 'icon': Icons.help_outline, 'color': Colors.blue},
-    {
-      'name': 'Infrastructure',
-      'icon': Icons.construction,
-      'color': Colors.orange,
-    },
-    {'name': 'Safety', 'icon': Icons.security, 'color': Colors.red},
-    {'name': 'Environment', 'icon': Icons.eco, 'color': Colors.green},
-    {'name': 'Other', 'icon': Icons.more_horiz, 'color': Colors.grey},
-  ];
 
   @override
   void initState() {
@@ -60,6 +56,11 @@ class _IssueReportFormState extends State<IssueReportForm>
     if (widget.initialImageUrls != null) {
       _uploadedImageUrls.addAll(widget.initialImageUrls!);
     }
+    
+    // Add the initial image file if provided
+    if (widget.initialImageFile != null) {
+      _imageFiles.add(widget.initialImageFile!);
+    }
   }
 
   @override
@@ -74,7 +75,7 @@ class _IssueReportFormState extends State<IssueReportForm>
   Future<Position?> _getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      _showSnackBar('Please enable location services.', SnackBarType.error);
+      _showSnackBar(AppLocalizations.of(context)!.enableLocationServices, SnackBarType.error);
       return null;
     }
 
@@ -82,14 +83,14 @@ class _IssueReportFormState extends State<IssueReportForm>
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        _showSnackBar('Location permission denied.', SnackBarType.error);
+        _showSnackBar(AppLocalizations.of(context)!.locationPermissionDenied, SnackBarType.error);
         return null;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
       _showSnackBar(
-        'Location permission permanently denied.',
+        AppLocalizations.of(context)!.locationPermissionPermanentlyDenied,
         SnackBarType.error,
       );
       return null;
@@ -129,7 +130,7 @@ class _IssueReportFormState extends State<IssueReportForm>
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        "Pin Your Location",
+                        AppLocalizations.of(context)!.pinYourLocation,
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
@@ -197,7 +198,7 @@ class _IssueReportFormState extends State<IssueReportForm>
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(outerContext),
-                      child: const Text("Cancel"),
+                      child: Text(AppLocalizations.of(context)!.cancel),
                     ),
                     const SizedBox(width: 8),
                     FilledButton.icon(
@@ -228,7 +229,7 @@ class _IssueReportFormState extends State<IssueReportForm>
                           }
                         } catch (e) {
                           _showSnackBar(
-                            'Error getting address: ${e.toString()}',
+                            AppLocalizations.of(context)!.errorGettingAddress(e.toString()),
                             SnackBarType.error,
                           );
                         }
@@ -236,7 +237,7 @@ class _IssueReportFormState extends State<IssueReportForm>
                         Navigator.pop(outerContext);
                       },
                       icon: const Icon(Icons.check),
-                      label: const Text("Use Location"),
+                      label: Text(AppLocalizations.of(context)!.useLocation),
                     ),
                   ],
                 ),
@@ -249,10 +250,15 @@ class _IssueReportFormState extends State<IssueReportForm>
   }
 
   Future<void> _pickImage() async {
+    // Only allow gallery selection now
+    _pickImageFromSource(ImageSource.gallery);
+  }
+
+  Future<void> _pickImageFromSource(ImageSource source) async {
     try {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 80,
       );
 
@@ -264,7 +270,7 @@ class _IssueReportFormState extends State<IssueReportForm>
     } catch (e) {
       if (mounted) {
         _showSnackBar(
-          'Error picking image: ${e.toString()}',
+          AppLocalizations.of(context)!.errorPickingImage(e.toString()),
           SnackBarType.error,
         );
       }
@@ -313,15 +319,12 @@ Future<String?> getBackendUrlFromSupabase() async {
           .select('url')
           .eq('name', 'Main API') // Query by name instead of ID
           .maybeSingle();
-      print(response?['url']);
       if (response != null && response['url'] != null) {
         return response['url'] as String;
       } else {
-        print('No matching backend_url found.');
         return null;
       }
     } catch (e) {
-      print('Error fetching backend URL: $e');
       return null;
     }
   }
@@ -358,7 +361,7 @@ Future<String?> getBackendUrlFromSupabase() async {
         throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
-      print('Assessment trigger error: $e');
+      // Assessment trigger error
       _showSnackBar(
         'Assessment queuing failed, but issue was saved',
         SnackBarType.warning,
@@ -397,7 +400,7 @@ Future<String?> getBackendUrlFromSupabase() async {
             'user_id': userId,
             'title': _titleController.text.trim(),
             'description': _descriptionController.text.trim(),
-            'category': _selectedCategory,
+            'category': 'General',
             'status': 'Pending',
             'image_urls': allImageUrls,
             'address': _addressController.text.trim(),
@@ -409,16 +412,23 @@ Future<String?> getBackendUrlFromSupabase() async {
         final issueId = response[0]['id'].toString();
 
         if (mounted) {
-          _showSnackBar('Issue reported successfully!', SnackBarType.success);
+          _showSnackBar(AppLocalizations.of(context)!.issueReportedSuccessfully, SnackBarType.success);
 
           // Trigger AI assessment in the background
           _triggerAssessment(issueId);
+
+          // Send notification about successful submission
+          final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
+          await notificationProvider.showIssueUpdateNotification(
+            issueTitle: _titleController.text.trim(),
+            status: 'Submitted',
+            issueId: issueId,
+          );
 
           // Reset the form
           _formKey.currentState!.reset();
           setState(() {
             _imageFiles.clear();
-            _selectedCategory = 'General';
             _uploadedImageUrls.clear();
             _titleController.clear();
             _descriptionController.clear();
@@ -431,7 +441,7 @@ Future<String?> getBackendUrlFromSupabase() async {
     } catch (e) {
       if (mounted) {
         _showSnackBar(
-          'Error submitting issue: ${e.toString()}',
+          AppLocalizations.of(context)!.errorSubmittingIssue(e.toString()),
           SnackBarType.error,
         );
       }
@@ -448,25 +458,46 @@ Future<String?> getBackendUrlFromSupabase() async {
     });
   }
 
+  Future<void> _removeUploadedImage(int index) async {
+    setState(() {
+      _uploadedImageUrls.removeAt(index);
+    });
+  }
+
   void _showSnackBar(String message, SnackBarType type) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
             Icon(
-              type == SnackBarType.success ? Icons.check_circle : Icons.error,
+              type == SnackBarType.success 
+                ? Icons.check_circle_outline 
+                : type == SnackBarType.warning
+                  ? Icons.warning_outlined
+                  : Icons.error_outline,
               color: Colors.white,
             ),
             const SizedBox(width: 8),
-            Expanded(child: Text(message)),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           ],
         ),
         backgroundColor: type == SnackBarType.success
-            ? Colors.green
-            : Colors.red,
+            ? Colors.green.shade600
+            : type == SnackBarType.warning
+              ? Colors.orange.shade600
+              : Colors.red.shade600,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
+        elevation: 8,
       ),
     );
   }
@@ -477,59 +508,114 @@ Future<String?> getBackendUrlFromSupabase() async {
     required IconData icon,
     int maxLines = 1,
     String? Function(String?)? validator,
+    bool enableVoiceInput = true,
   }) {
-    return TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+    return Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: controller,
+            maxLines: maxLines,
+            decoration: InputDecoration(
+              labelText: label,
+              prefixIcon: Icon(
+                icon,
+                color: Colors.blue.shade600,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: Colors.grey.shade300,
+                  width: 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: Colors.blue.shade600,
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+              labelStyle: TextStyle(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+            ),
+            validator: validator,
           ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-            width: 2,
+        if (enableVoiceInput) ...[
+          const SizedBox(width: 8),
+          VoiceButton(
+            onResult: (result) {
+              if (result.isNotEmpty) {
+                if (controller.text.isNotEmpty) {
+                  controller.text = '${controller.text} $result';
+                } else {
+                  controller.text = result;
+                }
+              }
+            },
+            tooltip: 'Add voice input to ${label.toLowerCase()}',
           ),
-        ),
-        filled: true,
-        fillColor: Theme.of(
-          context,
-        ).colorScheme.surfaceVariant.withOpacity(0.3),
-      ),
-      validator: validator,
+          const SizedBox(width: 4),
+          if (controller.text.isNotEmpty)
+            SpeakButton(
+              text: controller.text,
+              tooltip: 'Read ${label.toLowerCase()} aloud',
+            ),
+        ],
+      ],
     );
   }
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(8),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.shade500,
+                  Colors.blue.shade700,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.shade200.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Icon(
               icon,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-              size: 20,
+              color: Colors.white,
+              size: 22,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: Colors.blue.shade800,
             ),
           ),
         ],
@@ -537,47 +623,27 @@ Future<String?> getBackendUrlFromSupabase() async {
     );
   }
 
-  Widget _buildCategorySelector() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _categories.map((category) {
-        final isSelected = _selectedCategory == category['name'];
-        return FilterChip(
-          selected: isSelected,
-          onSelected: (selected) {
-            setState(() {
-              _selectedCategory = category['name'];
-            });
-          },
-          avatar: Icon(
-            category['icon'],
-            size: 18,
-            color: isSelected
-                ? Theme.of(context).colorScheme.onSecondaryContainer
-                : category['color'],
-          ),
-          label: Text(category['name']),
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          selectedColor: Theme.of(context).colorScheme.secondaryContainer,
-          checkmarkColor: Theme.of(context).colorScheme.onSecondaryContainer,
-        );
-      }).toList(),
-    );
-  }
-
   Widget _buildImageCard(String imageUrl, {VoidCallback? onRemove}) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: 120,
         height: 120,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Stack(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               child: Image.network(
                 imageUrl,
                 width: 120,
@@ -639,16 +705,25 @@ Future<String?> getBackendUrlFromSupabase() async {
 
   Widget _buildLocalImageCard(XFile imageFile, int index) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: 120,
         height: 120,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Stack(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               child: Image.file(
                 File(imageFile.path),
                 width: 120,
@@ -687,7 +762,7 @@ Future<String?> getBackendUrlFromSupabase() async {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Images', Icons.photo_library),
+        _buildSectionHeader(AppLocalizations.of(context)!.images, Icons.photo_library),
         const SizedBox(height: 8),
         if (totalImages > 0)
           SizedBox(
@@ -700,7 +775,10 @@ Future<String?> getBackendUrlFromSupabase() async {
                   // Show uploaded images
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: _buildImageCard(_uploadedImageUrls[index]),
+                    child: _buildImageCard(
+                      _uploadedImageUrls[index],
+                      onRemove: () => _removeUploadedImage(index),
+                    ),
                   );
                 } else if (index <
                     _uploadedImageUrls.length + _imageFiles.length) {
@@ -731,35 +809,54 @@ Future<String?> getBackendUrlFromSupabase() async {
 
   Widget _buildAddImageCard() {
     return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: _pickImage,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           width: 120,
           height: 120,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.blue.shade50,
+                Colors.blue.shade100,
+              ],
+            ),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+              color: Colors.blue.shade300,
+              width: 2,
               style: BorderStyle.solid,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.shade200.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.add_photo_alternate,
-                size: 32,
-                color: Theme.of(context).colorScheme.primary,
+                Icons.photo_library_rounded,
+                size: 36,
+                color: Colors.blue.shade600,
               ),
               const SizedBox(height: 8),
               Text(
-                'Add Photo',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
+                'Add from Gallery',
+                style: TextStyle(
+                  color: Colors.blue.shade700,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
                 ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -771,7 +868,7 @@ Future<String?> getBackendUrlFromSupabase() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.grey[50],
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: Form(
@@ -779,88 +876,190 @@ Future<String?> getBackendUrlFromSupabase() async {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withOpacity(0.2),
+              // Hero Section
+              Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.blue.shade600,
+                      Colors.blue.shade800,
+                      Colors.indigo.shade700,
+                    ],
                   ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.shade200.withOpacity(0.5),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.report_problem_rounded,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context)!.submitReport,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Help us improve your city by reporting issues',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildSectionHeader(
-                        'Basic Information',
+                        AppLocalizations.of(context)!.basicInformation,
                         Icons.info_outline,
                       ),
                       const SizedBox(height: 16),
                       _buildTextField(
                         controller: _titleController,
-                        label: 'Issue Title',
+                        label: AppLocalizations.of(context)!.issueTitle,
                         icon: Icons.title,
                         validator: (value) => value == null || value.isEmpty
-                            ? 'Please enter a title'
+                            ? AppLocalizations.of(context)!.pleaseEnterTitle
                             : null,
                       ),
                       const SizedBox(height: 16),
                       _buildTextField(
                         controller: _descriptionController,
-                        label: 'Description',
+                        label: AppLocalizations.of(context)!.description,
                         icon: Icons.description,
                         maxLines: 4,
                         validator: (value) => value == null || value.isEmpty
-                            ? 'Please enter a description'
+                            ? AppLocalizations.of(context)!.pleaseEnterDescription
                             : null,
                       ),
                       const SizedBox(height: 20),
-                      _buildSectionHeader('Category', Icons.category),
-                      const SizedBox(height: 12),
-                      _buildCategorySelector(),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withOpacity(0.2),
-                  ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSectionHeader('Location', Icons.location_on),
+                      _buildSectionHeader(AppLocalizations.of(context)!.location, Icons.location_on),
                       const SizedBox(height: 16),
                       Row(
                         children: [
                           Expanded(
                             child: _buildTextField(
                               controller: _addressController,
-                              label: 'Address or Landmark',
+                              label: AppLocalizations.of(context)!.addressOrLandmark,
                               icon: Icons.location_on,
                               validator: (value) =>
                                   value == null || value.isEmpty
-                                  ? 'Please enter an address'
+                                  ? AppLocalizations.of(context)!.pleaseEnterAddress
                                   : null,
                             ),
                           ),
                           const SizedBox(width: 8),
-                          FilledButton.tonalIcon(
-                            onPressed: _pinAndFetchAddress,
-                            icon: const Icon(Icons.pin_drop),
-                            label: const Text('Pin'),
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.blue.shade500,
+                                  Colors.blue.shade700,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blue.shade200.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton.icon(
+                              onPressed: _pinAndFetchAddress,
+                              icon: const Icon(Icons.pin_drop, color: Colors.white),
+                              label: Text(
+                                AppLocalizations.of(context)!.pin,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -869,58 +1068,90 @@ Future<String?> getBackendUrlFromSupabase() async {
                 ),
               ),
               const SizedBox(height: 20),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withOpacity(0.2),
-                  ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(24),
                   child: _buildImageSection(),
                 ),
               ),
               const SizedBox(height: 30),
-              FilledButton(
-                onPressed: _isLoading ? null : _submitForm,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              Container(
+                width: double.infinity,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: _isLoading 
+                      ? [Colors.grey.shade400, Colors.grey.shade500]
+                      : [
+                          Colors.blue.shade600,
+                          Colors.blue.shade800,
+                          Colors.indigo.shade700,
+                        ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _isLoading 
+                        ? Colors.grey.shade300.withOpacity(0.3)
+                        : Colors.blue.shade200.withOpacity(0.5),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
+                    ),
+                  )
+                      : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        AppLocalizations.of(context)!.submitReport,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.send),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Submit Report',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ],
-                      ),
               ),
               const SizedBox(height: 20),
             ],
@@ -930,5 +1161,4 @@ Future<String?> getBackendUrlFromSupabase() async {
     );
   }
 }
-
 enum SnackBarType { success, error, warning }
