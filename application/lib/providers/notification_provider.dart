@@ -209,6 +209,32 @@ class NotificationProvider extends ChangeNotifier {
     required String status,
     required String issueId,
   }) async {
+    // Create better notification messages based on status
+    String notificationBody;
+    String notificationTitle;
+    
+    switch (status.toLowerCase()) {
+      case 'fixed':
+      case 'resolved':
+        notificationTitle = 'Issue Resolved! 🎉';
+        notificationBody = 'Great news! Your reported "$issueTitle" has been fixed. Thank you for making your city better!';
+        break;
+      case 'in progress':
+      case 'ongoing':
+        notificationTitle = 'Issue In Progress 🔧';
+        notificationBody = 'Good news! Work has started on your reported "$issueTitle". We\'ll keep you updated.';
+        break;
+      case 'under review':
+      case 'pending':
+        notificationTitle = 'Issue Under Review 📋';
+        notificationBody = 'Your reported "$issueTitle" is being reviewed by our team. We\'ll update you soon.';
+        break;
+      default:
+        notificationTitle = 'Issue Update';
+        notificationBody = 'Your reported "$issueTitle" status has been updated to: $status';
+        break;
+    }
+    
     // Show local notification
     await NotificationService().showIssueUpdateNotification(
       issueTitle: issueTitle,
@@ -219,8 +245,8 @@ class NotificationProvider extends ChangeNotifier {
     // Add to notification list
     final notification = NotificationItem(
       id: '${issueId}_${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Issue Update: $issueTitle',
-      body: 'Your reported issue status has been updated to: $status',
+      title: notificationTitle,
+      body: notificationBody,
       timestamp: DateTime.now(),
       type: 'issue_update',
       data: {
@@ -285,37 +311,42 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   Future<void> _addSampleNotifications() async {
-    // Only add samples if no notifications exist
-    if (_notifications.isEmpty) {
-      final sampleNotifications = [
-        NotificationItem(
-          id: 'sample_1',
-          title: 'Welcome to SmartCity! 🎉',
-          body: 'Thank you for joining our community. Start reporting issues and making your city better!',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-          type: 'welcome',
-        ),
-        NotificationItem(
-          id: 'sample_2',
-          title: 'Issue Update: Pothole on Main St',
-          body: 'Your reported pothole has been fixed! Thank you for making your city better.',
-          timestamp: DateTime.now().subtract(const Duration(hours: 1)),
-          type: 'issue_update',
-          data: {'issueId': '1234', 'status': 'Fixed'},
-        ),
-        NotificationItem(
-          id: 'sample_3',
-          title: '📢 Community Update',
-          body: 'New community guidelines have been published. Check them out in the help section.',
-          timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-          type: 'community_update',
-        ),
-      ];
+    // Remove old sample notifications first
+    _notifications.removeWhere((n) => n.id.startsWith('sample_'));
+    
+    // Add updated sample notifications
+    final sampleNotifications = [
+      NotificationItem(
+        id: 'sample_1',
+        title: 'Welcome to SmartCity! 🎉',
+        body: 'Thank you for joining! Start reporting issues and making your city better.',
+        timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+        type: 'welcome',
+      ),
+      NotificationItem(
+        id: 'sample_2',
+        title: 'Issue Resolved! 🎉',
+        body: 'Great news! Your "Pothole on Main St" has been fixed. Thank you for making your city better!',
+        timestamp: DateTime.now().subtract(const Duration(hours: 1)),
+        type: 'issue_update',
+        data: {'issueId': '1234', 'status': 'Fixed'},
+      ),
+      NotificationItem(
+        id: 'sample_3',
+        title: '📢 Community Update',
+        body: 'New guidelines published. Check help section.',
+        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+        type: 'community_update',
+      ),
+    ];
 
-      for (final notification in sampleNotifications) {
-        await addNotification(notification);
-      }
+    for (final notification in sampleNotifications) {
+      _notifications.add(notification);
     }
+    
+    // Save and notify
+    await _saveNotifications();
+    notifyListeners();
   }
 
   // Test notification method

@@ -222,10 +222,36 @@ class NotificationService {
     required String status,
     required String issueId,
   }) async {
+    // Create better notification messages based on status
+    String notificationBody;
+    String notificationTitle;
+    
+    switch (status.toLowerCase()) {
+      case 'fixed':
+      case 'resolved':
+        notificationTitle = 'Issue Resolved! 🎉';
+        notificationBody = 'Great news! Your "$issueTitle" has been fixed!';
+        break;
+      case 'in progress':
+      case 'ongoing':
+        notificationTitle = 'Issue In Progress 🔧';
+        notificationBody = 'Work has started on your "$issueTitle"';
+        break;
+      case 'under review':
+      case 'pending':
+        notificationTitle = 'Issue Under Review 📋';
+        notificationBody = 'Your "$issueTitle" is being reviewed';
+        break;
+      default:
+        notificationTitle = 'Issue Update';
+        notificationBody = 'Your "$issueTitle" status: $status';
+        break;
+    }
+    
     await showNotification(
       id: issueId.hashCode,
-      title: 'Issue Update: $issueTitle',
-      body: 'Your reported issue status has been updated to: $status',
+      title: notificationTitle,
+      body: notificationBody,
       payload: jsonEncode({
         'type': 'issue_update',
         'issueId': issueId,

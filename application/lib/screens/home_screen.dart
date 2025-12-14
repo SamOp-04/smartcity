@@ -1163,8 +1163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             fontSize: 14,
                             height: 1.4,
                           ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
                         ),
                         
                         const SizedBox(height: 12),
@@ -1172,35 +1171,46 @@ class _HomeScreenState extends State<HomeScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade100,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.blue.shade300,
-                                  width: 1,
+                            Flexible(
+                              flex: 2,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 3,
                                 ),
-                              ),
-                              child: Text(
-                                notification.type.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blue.shade700,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade100,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: Colors.blue.shade300,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  _getShortNotificationType(notification.type),
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blue.shade700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ),
                             
-                            Text(
-                              _getTimeAgo(notification.timestamp),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade400,
-                                fontWeight: FontWeight.w500,
+                            const SizedBox(width: 8),
+                            
+                            Flexible(
+                              flex: 1,
+                              child: Text(
+                                _getTimeAgo(notification.timestamp),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade400,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.end,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -1306,6 +1316,25 @@ class _HomeScreenState extends State<HomeScreen> {
         return Icons.emergency_rounded;
       default:
         return Icons.notifications_rounded;
+    }
+  }
+
+  String _getShortNotificationType(String type) {
+    switch (type.toLowerCase()) {
+      case 'issue_update':
+        return 'UPDATE';
+      case 'community_update':
+        return 'COMMUNITY';
+      case 'welcome':
+        return 'WELCOME';
+      case 'emergency':
+        return 'EMERGENCY';
+      case 'maintenance':
+        return 'MAINTENANCE';
+      case 'test':
+        return 'TEST';
+      default:
+        return type.toUpperCase().substring(0, type.length > 8 ? 8 : type.length);
     }
   }
 
@@ -1648,56 +1677,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-
-                    const SizedBox(height: 24),
-
-                    // Emergency Info
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.red.shade50, Colors.red.shade100],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.shade600,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.emergency, color: Colors.white, size: 20),
-                              ),
-                              const SizedBox(width: 12),
-                              const Text(
-                                'Emergency Information',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildEmergencyContact('Police', '100', Icons.local_police),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildEmergencyContact('Fire Dept', '101', Icons.local_fire_department),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -1786,38 +1765,6 @@ class _HomeScreenState extends State<HomeScreen> {
             Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmergencyContact(String title, String number, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade200),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.red.shade600, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Text(
-            number,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.red.shade600,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1920,77 +1867,79 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Consumer<LanguageProvider>(
-                  builder: (context, languageProvider, child) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Language Settings
-                        Text(
-                          'Language Settings',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Consumer<LanguageProvider>(
+                    builder: (context, languageProvider, child) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Language Settings
+                          Text(
+                            'Language Settings',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: ListTile(
-                              leading: const Icon(Icons.language),
-                              title: const Text('App Language'),
-                              subtitle: Text(languageProvider.currentLanguageNativeName),
-                              trailing: Switch(
-                                value: languageProvider.isHindi,
-                                onChanged: (value) {
-                                  final newLocale = value 
-                                      ? const Locale('hi') 
-                                      : const Locale('en');
-                                  languageProvider.changeLanguage(newLocale, context);
-                                },
+                          const SizedBox(height: 12),
+                          
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: ListTile(
+                                leading: const Icon(Icons.language),
+                                title: const Text('App Language'),
+                                subtitle: Text(languageProvider.currentLanguageNativeName),
+                                trailing: Switch(
+                                  value: languageProvider.isHindi,
+                                  onChanged: (value) {
+                                    final newLocale = value 
+                                        ? const Locale('hi') 
+                                        : const Locale('en');
+                                    languageProvider.changeLanguage(newLocale, context);
+                                  },
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // App Info
-                        Text(
-                          'App Information',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                          
+                          const SizedBox(height: 20),
+                          
+                          // App Info
+                          Text(
+                            'App Information',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        Card(
-                          child: Column(
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.info_outline),
-                                title: const Text('Version'),
-                                subtitle: const Text('1.0.0'),
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.privacy_tip_outlined),
-                                title: const Text('Privacy Policy'),
-                                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                                onTap: () {
-                                  // Handle privacy policy tap
-                                },
-                              ),
-                            ],
+                          const SizedBox(height: 12),
+                          
+                          Card(
+                            child: Column(
+                              children: [
+                                ListTile(
+                                  leading: const Icon(Icons.info_outline),
+                                  title: const Text('Version'),
+                                  subtitle: const Text('1.0.0'),
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.privacy_tip_outlined),
+                                  title: const Text('Privacy Policy'),
+                                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                                  onTap: () {
+                                    // Handle privacy policy tap
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        
-                        const SizedBox(height: 40),
-                      ],
-                    );
-                  },
+                          
+                          const SizedBox(height: 40),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -2069,7 +2018,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Quick\nCamera',
+                  AppLocalizations.of(context)!.quickReport,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
@@ -2077,6 +2026,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontWeight: FontWeight.w600,
                     height: 1.1,
                   ),
+                  softWrap: true,
                 ),
               ],
             ),

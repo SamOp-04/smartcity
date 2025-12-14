@@ -166,10 +166,18 @@ class _IssueReportFormState extends State<IssueReportForm>
                             ),
                             children: [
                               TileLayer(
-                                urlTemplate:
-                                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                subdomains: const ['a', 'b', 'c'],
-                                userAgentPackageName: 'com.example.app',
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'SmartCity',
+                                maxZoom: 19,
+                                retinaMode: true,
+                                errorTileCallback: (tile, error, stackTrace) {
+                                  // Handle tile loading errors gracefully
+                                  debugPrint('Tile loading error: $error');
+                                },
+                                // Add proper attribution and headers
+                                additionalOptions: const {
+                                  'attribution': 'OpenStreetMap contributors',
+                                },
                               ),
                               MarkerLayer(
                                 markers: [
@@ -177,10 +185,23 @@ class _IssueReportFormState extends State<IssueReportForm>
                                     point: selectedPosition,
                                     width: 40,
                                     height: 40,
-                                    child: const Icon(
-                                      Icons.location_on,
-                                      size: 40,
-                                      color: Colors.red,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.3),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.location_on,
+                                        size: 32,
+                                        color: Colors.red,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -581,11 +602,11 @@ Future<String?> getBackendUrlFromSupabase() async {
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -595,11 +616,11 @@ Future<String?> getBackendUrlFromSupabase() async {
                   Colors.blue.shade700,
                 ],
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.shade200.withOpacity(0.3),
-                  blurRadius: 8,
+                  color: Colors.blue.shade200.withOpacity(0.25),
+                  blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -607,13 +628,13 @@ Future<String?> getBackendUrlFromSupabase() async {
             child: Icon(
               icon,
               color: Colors.white,
-              size: 22,
+              size: 20,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Text(
             title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: Colors.blue.shade800,
             ),
@@ -874,12 +895,12 @@ Future<String?> getBackendUrlFromSupabase() async {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             children: [
               // Hero Section
               Container(
-                margin: const EdgeInsets.only(bottom: 24),
-                padding: const EdgeInsets.all(24),
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -890,30 +911,30 @@ Future<String?> getBackendUrlFromSupabase() async {
                       Colors.indigo.shade700,
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.blue.shade200.withOpacity(0.5),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
+                      color: Colors.blue.shade200.withOpacity(0.4),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
                         Icons.report_problem_rounded,
                         color: Colors.white,
-                        size: 32,
+                        size: 28,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -922,16 +943,16 @@ Future<String?> getBackendUrlFromSupabase() async {
                             AppLocalizations.of(context)!.submitReport,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 24,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           Text(
                             'Help us improve your city by reporting issues',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.9),
-                              fontSize: 14,
+                              fontSize: 13,
                             ),
                           ),
                         ],
@@ -961,7 +982,7 @@ Future<String?> getBackendUrlFromSupabase() async {
                         AppLocalizations.of(context)!.basicInformation,
                         Icons.info_outline,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       _buildTextField(
                         controller: _titleController,
                         label: AppLocalizations.of(context)!.issueTitle,
@@ -970,17 +991,17 @@ Future<String?> getBackendUrlFromSupabase() async {
                             ? AppLocalizations.of(context)!.pleaseEnterTitle
                             : null,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       _buildTextField(
                         controller: _descriptionController,
                         label: AppLocalizations.of(context)!.description,
                         icon: Icons.description,
-                        maxLines: 4,
+                        maxLines: 3,
                         validator: (value) => value == null || value.isEmpty
                             ? AppLocalizations.of(context)!.pleaseEnterDescription
                             : null,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -1004,7 +1025,7 @@ Future<String?> getBackendUrlFromSupabase() async {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildSectionHeader(AppLocalizations.of(context)!.location, Icons.location_on),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
@@ -1067,28 +1088,28 @@ Future<String?> getBackendUrlFromSupabase() async {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+                      color: Colors.grey.withOpacity(0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(20),
                   child: _buildImageSection(),
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
               Container(
                 width: double.infinity,
-                height: 56,
+                height: 52,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -1101,14 +1122,14 @@ Future<String?> getBackendUrlFromSupabase() async {
                           Colors.indigo.shade700,
                         ],
                   ),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
                       color: _isLoading 
-                        ? Colors.grey.shade300.withOpacity(0.3)
-                        : Colors.blue.shade200.withOpacity(0.5),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                        ? Colors.grey.shade300.withOpacity(0.25)
+                        : Colors.blue.shade200.withOpacity(0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
@@ -1118,7 +1139,7 @@ Future<String?> getBackendUrlFromSupabase() async {
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   child: _isLoading
@@ -1153,7 +1174,7 @@ Future<String?> getBackendUrlFromSupabase() async {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
             ],
           ),
         ),
