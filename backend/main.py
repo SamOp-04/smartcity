@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 import logging
 from dotenv import load_dotenv
+from contextlib import asynccontextmanager
 load_dotenv()
 import uuid
 
@@ -18,23 +19,26 @@ from img import InfrastructureDamageAssessor
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
-app = FastAPI(title="Infrastructure Damage Assessment API", version="1.0.0")
-
-SUPABASE_URL = os.getenv("SUPABASE_URL",)
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", )
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-
 # Initialize the damage assessor globally
 assessor = None
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the model on startup"""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle events for FastAPI"""
     global assessor
     logger.info("Initializing damage assessment model...")
     assessor = InfrastructureDamageAssessor()
     logger.info("Model initialized successfully!")
+    yield
+    # Any cleanup code can go here
+    logger.info("Shutting down model...")
+
+# Initialize FastAPI app
+app = FastAPI(title="Infrastructure Damage Assessment API", version="1.0.0", lifespan=lifespan)
+
+SUPABASE_URL = os.getenv("SUPABASE_URL",)
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", )
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 # Pydantic models
 class IssueRequest(BaseModel):
@@ -64,7 +68,10 @@ def validate_uuid(issue_id: str) -> Optional[str]:
 async def fetch_issue_from_supabase(issue_id: str) -> Optional[IssueData]:
     """Fetch issue data from Supabase"""
     try:
-        response = supabase.table('issues').select('*').eq('id', issue_id).execute()
+        # Supabase Python client is synchronous, so we offload it to a thread
+        response = await asyncio.to_thread(
+            lambda: supabase.table('issues').select('*').eq('id', issue_id).execute()
+        )
         
         if not response.data:
             logger.error(f"No issue found with ID: {issue_id}")
@@ -86,12 +93,14 @@ async def fetch_issue_from_supabase(issue_id: str) -> Optional[IssueData]:
 async def update_issue_priority(issue_id: str, priority_score: int, reasoning: str) -> bool:
     """Update issue priority score in Supabase"""
     try:
-        response = supabase.table('issues').update({
-            'priority_score': priority_score,
-            'assessment_reasoning': reasoning,
-            'status': 'Assessed',
-            'assessed_at': datetime.utcnow().isoformat()
-        }).eq('id', issue_id).execute()
+        response = await asyncio.to_thread(
+            lambda: supabase.table('issues').update({
+                'priority_score': priority_score,
+                'assessment_reasoning': reasoning,
+                'status': 'Assessed',
+                'assessed_at': datetime.utcnow().isoformat()
+            }).eq('id', issue_id).execute()
+        )
         
         if response.data:
             logger.info(f"Successfully updated priority score for issue {issue_id}: {priority_score}")
@@ -114,10 +123,12 @@ async def assess_issue_damage(issue: IssueData) -> Optional[dict]:
                 "reasoning": "No images provided for assessment. Using default priority score."
             }
         image_url = issue.image_urls[0]
-        result = assessor.assess_damage(
-            heading=issue.title,
-            description=issue.description,
-            image_source=image_url
+        # Run the CPU/GPU heavy synchronous task in a separate thread so we don't block the async event loop
+        result = await asyncio.to_thread(
+            assessor.assess_damage,
+            issue.title,
+            issue.description,
+            image_url
         )
         
         logger.info(f"Assessment completed for issue {issue.id}: Score {result.get('priority_score', 0)}")
@@ -136,9 +147,11 @@ async def process_issue_assessment(issue_id: str):
         logger.info(f"Starting assessment for issue: {issue_id}")
         
         # Update status to 'Processing'
-        supabase.table('issues').update({
-            'status': 'Processing'
-        }).eq('id', issue_id).execute()
+        await asyncio.to_thread(
+            lambda: supabase.table('issues').update({
+                'status': 'Processing'
+            }).eq('id', issue_id).execute()
+        )
         
         # Fetch issue data
         issue = await fetch_issue_from_supabase(issue_id)
@@ -167,10 +180,12 @@ async def process_issue_assessment(issue_id: str):
         logger.error(f"Error in background assessment for issue {issue_id}: {str(e)}")
         # Update status to 'Error'
         try:
-            supabase.table('issues').update({
-                'status': 'Error',
-                'assessment_reasoning': f"Assessment failed: {str(e)}"
-            }).eq('id', issue_id).execute()
+            await asyncio.to_thread(
+                lambda: supabase.table('issues').update({
+                    'status': 'Error',
+                    'assessment_reasoning': f"Assessment failed: {str(e)}"
+                }).eq('id', issue_id).execute()
+            )
         except Exception as db_error:
             logger.error(f"Failed to update error status: {str(db_error)}")
 
@@ -212,9 +227,11 @@ async def get_assessment_status(issue_id: str):
         if not validated_id:
             raise HTTPException(status_code=400, detail="Invalid UUID format")
 
-        response = supabase.table('issues').select(
-            'id, status, priority_score, assessment_reasoning, assessed_at'
-        ).eq('id', validated_id).execute()
+        response = await asyncio.to_thread(
+            lambda: supabase.table('issues').select(
+                'id, status, priority_score, assessment_reasoning, assessed_at'
+            ).eq('id', validated_id).execute()
+        )
         
         if not response.data:
             raise HTTPException(status_code=404, detail="Issue not found")

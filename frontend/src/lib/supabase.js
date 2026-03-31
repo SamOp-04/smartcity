@@ -1,7 +1,6 @@
 // lib/supabase.js
-import { createClient } from '@supabase/supabase-js'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY
-
-export const supabase = createClient(supabaseUrl, supabaseKey)
+// This creates a single instance of the Supabase client that shares the session 
+// state and properly respects user Row Level Security (RLS) on the client side.
+export const supabase = createClientComponentClient()

@@ -125,8 +125,8 @@ export default function DashboardPage() {
       }
     }
 
-    mediaQuery.addListener(handleSystemThemeChange)
-    return () => mediaQuery.removeListener(handleSystemThemeChange)
+    mediaQuery.addEventListener('change', handleSystemThemeChange)
+    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange)
   }, [])
 
   // Listen for storage changes (cross-tab synchronization)

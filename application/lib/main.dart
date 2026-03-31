@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
@@ -15,10 +16,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Supabase client
+  bool isSupabaseInitialized = false;
   try {
     await SupabaseClientManager.initialize();
+    isSupabaseInitialized = true;
   } catch (e) {
-    // Handle error gracefully in production
+    debugPrint('Supabase Initialization Error: $e');
   }
 
   // Run the app
@@ -29,13 +32,14 @@ void main() async {
         ChangeNotifierProvider(create: (context) => VoiceProvider()),
         ChangeNotifierProvider(create: (context) => NotificationProvider()),
       ],
-      child: const MyApp(),
+      child: MyApp(isInitialized: isSupabaseInitialized),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isInitialized;
+  const MyApp({super.key, required this.isInitialized});
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +71,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
           // Check auth state before deciding initial route
-          initialRoute: SupabaseClientManager.client.auth.currentSession != null
+          initialRoute: isInitialized && SupabaseClientManager.client.auth.currentSession != null
               ? '/home'
               : '/auth',
           routes: {

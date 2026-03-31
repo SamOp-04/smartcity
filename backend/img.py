@@ -42,9 +42,9 @@ class InfrastructureDamageAssessor:
     def _load_image_from_url(self, image_url):
         """Load image from URL"""
         try:
-            response = requests.get(image_url, timeout=30)
+            response = requests.get(image_url, stream=True, timeout=30)
             response.raise_for_status()
-            image = Image.open(requests.get(image_url, stream=True).raw)
+            image = Image.open(response.raw)
             return image.convert("RGB")
         except Exception as e:
             print(f"Error loading image from URL: {e}")

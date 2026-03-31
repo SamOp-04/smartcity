@@ -130,7 +130,11 @@ export default function Sidebar({ isOpen, setIsOpen, darkMode, toggleDarkMode })
         <div className="px-2 py-6 space-y-2">
           {/* Dark Mode Toggle */}
           <button 
-            onClick={toggleDarkMode}
+            onClick={() => {
+              toggleDarkMode()
+              const newMode = !darkMode
+              window.dispatchEvent(new CustomEvent('themeChange', { detail: { isDark: newMode } }))
+            }}
             className={`
               flex items-center w-full text-sm transition-all p-3 rounded-lg
               ${isOpen ? 'justify-start' : 'justify-center'}

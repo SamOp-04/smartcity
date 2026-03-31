@@ -74,6 +74,8 @@ class _IssueReportFormState extends State<IssueReportForm>
 
   Future<Position?> _getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!mounted) return null;
+    
     if (!serviceEnabled) {
       _showSnackBar(AppLocalizations.of(context)!.enableLocationServices, SnackBarType.error);
       return null;
@@ -82,6 +84,7 @@ class _IssueReportFormState extends State<IssueReportForm>
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
+      if (!mounted) return null;
       if (permission == LocationPermission.denied) {
         _showSnackBar(AppLocalizations.of(context)!.locationPermissionDenied, SnackBarType.error);
         return null;
@@ -89,6 +92,7 @@ class _IssueReportFormState extends State<IssueReportForm>
     }
 
     if (permission == LocationPermission.deniedForever) {
+      if (!mounted) return null;
       _showSnackBar(
         AppLocalizations.of(context)!.locationPermissionPermanentlyDenied,
         SnackBarType.error,
@@ -222,19 +226,25 @@ class _IssueReportFormState extends State<IssueReportForm>
                                     .where((e) => e != null && e.isNotEmpty)
                                     .join(', ');
 
-                            setState(() {
-                              _addressController.text = address;
-                              _selectedLocation = selectedPosition;
-                            });
+                            if (mounted) {
+                              setState(() {
+                                _addressController.text = address;
+                                _selectedLocation = selectedPosition;
+                              });
+                            }
                           }
                         } catch (e) {
-                          _showSnackBar(
-                            AppLocalizations.of(context)!.errorGettingAddress(e.toString()),
-                            SnackBarType.error,
-                          );
+                          if (mounted) {
+                            _showSnackBar(
+                              AppLocalizations.of(context)!.errorGettingAddress(e.toString()),
+                              SnackBarType.error,
+                            );
+                          }
                         }
 
-                        Navigator.pop(outerContext);
+                        if (mounted) {
+                          Navigator.pop(outerContext);
+                        }
                       },
                       icon: const Icon(Icons.check),
                       label: Text(AppLocalizations.of(context)!.useLocation),

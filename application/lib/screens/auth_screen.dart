@@ -123,7 +123,9 @@ class _AuthScreenState extends State<AuthScreen> {
         if (mounted) {
           _showSuccessMessage(AppLocalizations.of(context)!.welcomeBackMessage);
           await Future.delayed(const Duration(milliseconds: 1500));
-          Navigator.pushReplacementNamed(context, '/home');
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
         }
       } else {
         // Handle sign up
@@ -139,7 +141,9 @@ class _AuthScreenState extends State<AuthScreen> {
           _showSuccessMessage('Account created! Please check your email to confirm your account.');
           // Switch to login mode after successful signup
           await Future.delayed(const Duration(milliseconds: 2000));
-          _toggleAuthMode();
+          if (mounted) {
+            _toggleAuthMode();
+          }
         }
       }
     } on AuthException catch (e) {
@@ -168,7 +172,9 @@ class _AuthScreenState extends State<AuthScreen> {
         if (mounted) {
           _showSuccessMessage('Successfully signed in with Google!');
           await Future.delayed(const Duration(milliseconds: 1500));
-          Navigator.pushReplacementNamed(context, '/home');
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
         }
       } else {
         if (mounted) {
@@ -182,7 +188,7 @@ class _AuthScreenState extends State<AuthScreen> {
     } catch (e) {
       if (mounted) {
         _showErrorMessage('Google sign-in failed. Please try again.');
-        print('Google sign-in error: $e');
+        debugPrint('Google sign-in error: $e');
       }
     } finally {
       if (mounted) {

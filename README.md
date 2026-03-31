@@ -81,17 +81,17 @@ graph TD
 - **Localization:** Flutter multi-language support (English/Hindi) via `.arb` files.
 
 ### 2. AI Backend & API (`/backend`)
-- **Core Framework:** Python 3.10+, FastAPI for concurrent request polling.
+- **Core Framework:** Python 3.10+, FastAPI (using modern `lifespan` contexts and fully non-blocking ThreadPool offloading for heavy ML inference and database tasks).
 - **Machine Learning / AI:** `transformers`, `torch` (PyTorch). Uses 4-bit Nf4 quantization (`bitsandbytes`) to fit the massive 7B parameter vision model into standard consumer VRAM.
 - **Model Used:** `llava-v1.6-mistral-7b-hf` (Vision-Language Model).
-- **Database Connection:** `supabase` Python client.
+- **Database Connection:** `supabase` Python client (Synchronous client safely mapped to async threadpools to prevent event-loop freezing).
 
 ### 3. Web Dashboard (`/frontend`)
 - **Core Framework:** Next.js 15.3.4 (App Router) and React 19.
 - **Styling:** Tailwind CSS v4, utilizing heavily optimized utility classes.
 - **Icons & UI:** Heroicons and Lucide React.
 - **Charts:** `chart.js`, `react-chartjs-2`, and `recharts` for KPI tracking.
-- **Auth & Linking:** `@supabase/auth-helpers-nextjs` and `@supabase/supabase-js`.
+- **Auth & Linking:** `@supabase/auth-helpers-nextjs` directly synced via `createClientComponentClient()` for secure, React-context-aware RLS access on the browser.
 
 ---
 

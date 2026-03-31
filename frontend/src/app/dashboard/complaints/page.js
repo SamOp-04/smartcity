@@ -82,15 +82,27 @@ export default function ComplaintsPage() {
   }, [router, supabase])
 
   useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true'
-    setDarkMode(savedDarkMode)
-    const interval = setInterval(() => {
-      const newDarkMode = localStorage.getItem('darkMode') === 'true'
-      if (newDarkMode !== darkMode) {
-        setDarkMode(newDarkMode)
+    const handleStorageChange = (e) => {
+      if (e.key === 'darkMode') {
+        const newDarkMode = e.newValue === 'true'
+        if (newDarkMode !== darkMode) setDarkMode(newDarkMode)
       }
-    }, 200)
-    return () => clearInterval(interval)
+    }
+    
+    // Also listen to a custom event for same-window updates
+    const handleCustomThemeChange = (e) => {
+      const newDarkMode = e.detail.isDark
+      if (newDarkMode !== darkMode) setDarkMode(newDarkMode)
+    }
+
+    setDarkMode(localStorage.getItem('darkMode') === 'true')
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('themeChange', handleCustomThemeChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('themeChange', handleCustomThemeChange)
+    }
   }, [darkMode])
 
 const loadComplaints = async () => {
