@@ -42,15 +42,6 @@ Traditionally, infrastructure damage reports rely on manual sorting and subjecti
 
 ---
 
-## 📸 Screenshots & Demo
-
-*(Add your screenshots or demo GIFs here)*
-
-| Citizen Mobile App (Reporting) | Admin Web Dashboard (Management) |
-| :---: | :---: |
-| ![App Screenshot](docs/app-placeholder.png) | ![Dashboard Screenshot](docs/dashboard-placeholder.png) |
-
----
 
 ## ✨ Key Features
 - **Effortless Issue Reporting:** Citizens can submit infrastructure problems using a Flutter mobile app featuring camera capture, GPS tagging, and voice-to-text descriptions (available in multiple languages including English and Hindi).
